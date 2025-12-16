@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "784144455680",
+    "project_id": "easymoney-8e9bb",
+    "storage_bucket": "easymoney-8e9bb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:784144455680:android:ec63b9de047393e5a420e5",
+        "android_client_info": {
+          "package_name": "com.easymoney.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCt7UJpvboNq5RguDYduA_RnpX_RRN4mvE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
