@@ -7,7 +7,6 @@ import '../../providers/goal_provider.dart';
 import '../../models/goal_model.dart';
 import '../../utils/helpers.dart';
 import '../../utils/theme.dart';
-import '../../utils/constants.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/empty_state.dart';
 import 'add_goal_screen.dart';
