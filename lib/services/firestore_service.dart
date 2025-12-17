@@ -228,13 +228,13 @@ class FirestoreService {
     final transactions = await getTransactionsByDateRange(startDate, endDate);
     return transactions
         .where((t) => t.type == 'income')
-        .fold(0.0, (sum, t) => sum + t.amount);
+        .fold<double>(0.0, (sum, t) => sum + t.amount);
   }
 
   Future<double> getTotalExpenses(DateTime startDate, DateTime endDate) async {
     final transactions = await getTransactionsByDateRange(startDate, endDate);
     return transactions
         .where((t) => t.type == 'expense')
-        .fold(0.0, (sum, t) => sum + t.amount);
+        .fold<double>(0.0, (sum, t) => sum + t.amount);
   }
 }
