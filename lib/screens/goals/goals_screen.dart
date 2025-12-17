@@ -7,6 +7,7 @@ import '../../providers/goal_provider.dart';
 import '../../models/goal_model.dart';
 import '../../utils/helpers.dart';
 import '../../utils/theme.dart';
+import '../../utils/constants.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/empty_state.dart';
 import 'add_goal_screen.dart';
@@ -18,7 +19,8 @@ class GoalsScreen extends StatefulWidget {
   State<GoalsScreen> createState() => _GoalsScreenState();
 }
 
-class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStateMixin {
+class _GoalsScreenState extends State<GoalsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -64,8 +66,10 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
                     : TabBarView(
                         controller: _tabController,
                         children: [
-                          _buildGoalsList(goalProvider.activeGoals, isActive: true),
-                          _buildGoalsList(goalProvider.completedGoals, isActive: false),
+                          _buildGoalsList(goalProvider.activeGoals,
+                              isActive: true),
+                          _buildGoalsList(goalProvider.completedGoals,
+                              isActive: false),
                         ],
                       ),
               ),
@@ -107,19 +111,14 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).textTheme.displayLarge?.color,
                 ),
-              )
-                  .animate()
-                  .fadeIn(delay: 100.ms)
-                  .slideX(begin: -0.2, end: 0),
+              ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2, end: 0),
               Text(
                 '$completedCount of $totalGoals goals completed',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   color: Colors.grey,
                 ),
-              )
-                  .animate()
-                  .fadeIn(delay: 200.ms),
+              ).animate().fadeIn(delay: 200.ms),
             ],
           ),
           Container(
@@ -149,10 +148,7 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
                 ),
               ],
             ),
-          )
-              .animate()
-              .fadeIn(delay: 300.ms)
-              .scale(delay: 300.ms),
+          ).animate().fadeIn(delay: 300.ms).scale(delay: 300.ms),
         ],
       ),
     );
@@ -182,9 +178,7 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
           Tab(text: 'Completed'),
         ],
       ),
-    )
-        .animate()
-        .fadeIn(delay: 400.ms);
+    ).animate().fadeIn(delay: 400.ms);
   }
 
   Widget _buildGoalsList(List<GoalModel> goals, {required bool isActive}) {
@@ -221,8 +215,10 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
 
     return Dismissible(
       key: Key(goal.id ?? ''),
-      background: _buildDismissBackground(Alignment.centerLeft, Colors.blue, Iconsax.edit),
-      secondaryBackground: _buildDismissBackground(Alignment.centerRight, Colors.red, Iconsax.trash),
+      background: _buildDismissBackground(
+          Alignment.centerLeft, Colors.blue, Iconsax.edit),
+      secondaryBackground: _buildDismissBackground(
+          Alignment.centerRight, Colors.red, Iconsax.trash),
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.endToStart) {
           return await _showDeleteConfirmation(goal);
@@ -238,7 +234,8 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
           color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Color(int.parse(goal.color.replaceFirst('#', '0xFF'))).withOpacity(0.3),
+            color: Color(int.parse(goal.color.replaceFirst('#', '0xFF')))
+                .withOpacity(0.3),
             width: 2,
           ),
           boxShadow: [
@@ -258,12 +255,15 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: Color(int.parse(goal.color.replaceFirst('#', '0xFF'))).withOpacity(0.2),
+                    color:
+                        Color(int.parse(goal.color.replaceFirst('#', '0xFF')))
+                            .withOpacity(0.2),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
                     isCompleted ? Iconsax.tick_circle5 : Iconsax.flag,
-                    color: Color(int.parse(goal.color.replaceFirst('#', '0xFF'))),
+                    color:
+                        Color(int.parse(goal.color.replaceFirst('#', '0xFF'))),
                     size: 28,
                   ),
                 ),
@@ -291,14 +291,16 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
                 ),
                 if (isCompleted)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryGreen.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Iconsax.tick_circle, color: AppTheme.primaryGreen, size: 16),
+                        const Icon(Iconsax.tick_circle,
+                            color: AppTheme.primaryGreen, size: 16),
                         const SizedBox(width: 4),
                         Text(
                           'Completed',
@@ -313,14 +315,16 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
                   )
                 else if (daysRemaining < 30 && daysRemaining > 0)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.orange.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Iconsax.clock, color: Colors.orange, size: 14),
+                        const Icon(Iconsax.clock,
+                            color: Colors.orange, size: 14),
                         const SizedBox(width: 4),
                         Text(
                           '$daysRemaining days',
@@ -354,7 +358,8 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(int.parse(goal.color.replaceFirst('#', '0xFF'))),
+                        color: Color(
+                            int.parse(goal.color.replaceFirst('#', '0xFF'))),
                       ),
                     ),
                   ],
@@ -377,7 +382,7 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
                         color: Colors.grey.shade700,
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -402,7 +407,8 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Color(int.parse(goal.color.replaceFirst('#', '0xFF'))),
+                    color:
+                        Color(int.parse(goal.color.replaceFirst('#', '0xFF'))),
                   ),
                 ),
                 if (!isCompleted)
@@ -423,7 +429,8 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
                 icon: Iconsax.add_circle,
                 gradient: [
                   Color(int.parse(goal.color.replaceFirst('#', '0xFF'))),
-                  Color(int.parse(goal.color.replaceFirst('#', '0xFF'))).withOpacity(0.7),
+                  Color(int.parse(goal.color.replaceFirst('#', '0xFF')))
+                      .withOpacity(0.7),
                 ],
                 height: 44,
               ),
@@ -434,7 +441,8 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildDismissBackground(Alignment alignment, Color color, IconData icon) {
+  Widget _buildDismissBackground(
+      Alignment alignment, Color color, IconData icon) {
     return Container(
       alignment: alignment,
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -449,7 +457,7 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
 
   void _showAddContributionDialog(GoalModel goal) {
     final amountController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -469,7 +477,8 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
             const SizedBox(height: 16),
             TextField(
               controller: amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               autofocus: true,
               decoration: InputDecoration(
                 labelText: 'Amount',
@@ -494,11 +503,13 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
                     .addContribution(goal.id!, amount);
                 if (context.mounted) {
                   Navigator.pop(context);
-                  Helpers.showSnackBar(context, 'Contribution added successfully');
+                  Helpers.showSnackBar(
+                      context, 'Contribution added successfully');
                 }
               }
             },
-            child: Text('Add', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+            child: Text('Add',
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -507,39 +518,41 @@ class _GoalsScreenState extends State<GoalsScreen> with SingleTickerProviderStat
 
   Future<bool> _showDeleteConfirmation(GoalModel goal) async {
     return await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Delete Goal',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          'Are you sure you want to delete "${goal.name}"?',
-          style: GoogleFonts.inter(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: GoogleFonts.inter()),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context, true);
-              await Provider.of<GoalProvider>(context, listen: false)
-                  .deleteGoal(goal.id!);
-              if (mounted) {
-                Helpers.showSnackBar(context, 'Goal deleted');
-              }
-            },
-            child: Text(
-              'Delete',
-              style: GoogleFonts.inter(color: Colors.red),
+          context: context,
+          builder: (context) => AlertDialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              'Delete Goal',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
             ),
+            content: Text(
+              'Are you sure you want to delete "${goal.name}"?',
+              style: GoogleFonts.inter(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Cancel', style: GoogleFonts.inter()),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context, true);
+                  await Provider.of<GoalProvider>(context, listen: false)
+                      .deleteGoal(goal.id!);
+                  if (mounted) {
+                    Helpers.showSnackBar(context, 'Goal deleted');
+                  }
+                },
+                child: Text(
+                  'Delete',
+                  style: GoogleFonts.inter(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
 
   void _navigateToAddGoal() {

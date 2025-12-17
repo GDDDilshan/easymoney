@@ -137,7 +137,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
     final totalSpent =
         transactionProvider.getTotalExpenses(startOfMonth, endOfMonth);
     final remaining = totalBudget - totalSpent;
-    final percentUsed = totalBudget > 0 ? (totalSpent / totalBudget * 100) : 0;
+    final percentUsed =
+        totalBudget > 0 ? (totalSpent / totalBudget * 100) : 0.0;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -210,7 +211,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
             children: [
               _buildStatItem('Spent', totalSpent, Iconsax.arrow_up_3),
               _buildStatItem('Remaining', remaining, Iconsax.wallet),
-              _buildStatItem('Used', percentUsed, Iconsax.percentage_circle,
+              _buildStatItem(
+                  'Used', percentUsed.toDouble(), Iconsax.percentage_circle,
                   isPercent: true),
             ],
           ),
