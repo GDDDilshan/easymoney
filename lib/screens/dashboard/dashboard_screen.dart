@@ -527,9 +527,7 @@ class DashboardHome extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () {
-                  // Navigate to goals screen
-                },
+                onPressed: () {},
                 child: Text(
                   'See All',
                   style: GoogleFonts.inter(
@@ -655,9 +653,7 @@ class DashboardHome extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () {
-                  // Navigate to transactions screen
-                },
+                onPressed: () {},
                 child: Text(
                   'See All',
                   style: GoogleFonts.inter(
