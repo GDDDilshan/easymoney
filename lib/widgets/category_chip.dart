@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 class CategoryChip extends StatelessWidget {
   final String category;
   final bool isSelected;
