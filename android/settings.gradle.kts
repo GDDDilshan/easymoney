@@ -19,11 +19,11 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.1.0" apply false
-    // START: FlutterFire Configuration
-    id("com.google.gms.google-services") version("4.3.15") apply false
-    // END: FlutterFire Configuration
-    id("org.jetbrains.kotlin.android") version "1.9.0" apply false
+    // [Fix] Update AGP to 8.8.0 (Latest Stable)
+    id("com.android.application") version "8.8.0" apply false
+    id("com.google.gms.google-services") version "4.4.0" apply false
+    // [Fix] Update Kotlin to 2.1.0 as requested by the warning
+    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
 }
 
 include(":app")

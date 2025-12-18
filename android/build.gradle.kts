@@ -1,4 +1,9 @@
+// Added missing repositories block to fix "no repositories are defined" error
 buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
     dependencies {
         classpath("com.google.gms:google-services:4.4.0")
     }

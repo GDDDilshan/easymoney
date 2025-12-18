@@ -10,11 +10,11 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Firebase Core - REQUIRED FIRST
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  cloud_firestore: ^4.13.6
-  firebase_storage: ^11.5.6
+  # Firebase Core
+  firebase_core: ^3.3.0
+  firebase_auth: ^5.1.4
+  cloud_firestore: ^5.2.1
+  firebase_storage: ^12.1.0
   
   # State Management
   provider: ^6.1.1
@@ -48,18 +48,18 @@ dependencies:
   image_picker: ^1.0.5
   cached_network_image: ^3.3.0
   
-  # PDF Generation (for reports)
+  # PDF Generation
   pdf: ^3.10.7
   printing: ^5.11.1
   
   # Local Notifications
-  flutter_local_notifications: ^16.3.0
+  flutter_local_notifications: ^18.0.0
   
   # Biometric Authentication
   local_auth: ^2.1.8
   
   # File Handling
-  file_picker: ^6.1.1
+  file_picker: ^8.0.0 # Updated to match your lockfile
   path: ^1.8.3
   
   # HTTP & API
@@ -74,12 +74,14 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   
-  assets:
-    - assets/animations/
-    - assets/images/
-    - assets/icons/
+  # [IMPORTANT] Commented out because these files do not exist yet.
+  # Uncomment these lines only after you create the folders and files.
+  # assets:
+  #   - assets/animations/
+  #   - assets/images/
+  #   - assets/icons/
   
-  fonts:
-    - family: CustomIcons
-      fonts:
-        - asset: fonts/CustomIcons.ttf
+  # fonts:
+  #   - family: CustomIcons
+  #     fonts:
+  #       - asset: fonts/CustomIcons.ttf
