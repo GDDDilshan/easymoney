@@ -558,179 +558,24 @@ class _TransactionsScreenState extends State<TransactionsScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildFilterSheet(),
-    );
-  }
-
-  Widget _buildFilterSheet() {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Text(
-              'Filters',
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              children: [
-                Text(
-                  'Category',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    'all',
-                    ...AppConstants.expenseCategories,
-                    ...AppConstants.incomeCategories
-                  ].map((category) => _buildCategoryChip(category)).toList(),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Date Range',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                        child: _buildDateButton('Start', _startDate, true)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildDateButton('End', _endDate, false)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: CustomButton(
-                    text: 'Reset',
-                    onPressed: () {
-                      setState(() {
-                        _selectedCategory = 'all';
-                        _startDate = null;
-                        _endDate = null;
-                      });
-                      Navigator.pop(context);
-                    },
-                    textColor: AppTheme.primaryGreen,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: CustomButton(
-                    text: 'Apply',
-                    onPressed: () => Navigator.pop(context),
-                    gradient: const [
-                      AppTheme.primaryGreen,
-                      AppTheme.primaryTeal
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCategoryChip(String category) {
-    final isSelected = _selectedCategory == category;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedCategory = category),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          gradient: isSelected ? AppTheme.primaryGradient : null,
-          color: isSelected ? null : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          category == 'all' ? 'All' : category,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : Colors.grey.shade700,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDateButton(String label, DateTime? date, bool isStart) {
-    return GestureDetector(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: date ?? DateTime.now(),
-          firstDate: DateTime(2020),
-          lastDate: DateTime.now(),
-        );
-        if (picked != null) {
+      builder: (context) => _FilterSheet(
+        selectedCategory: _selectedCategory,
+        startDate: _startDate,
+        endDate: _endDate,
+        onApply: (category, start, end) {
           setState(() {
-            if (isStart) {
-              _startDate = picked;
-            } else {
-              _endDate = picked;
-            }
+            _selectedCategory = category;
+            _startDate = start;
+            _endDate = end;
           });
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              date != null ? Helpers.formatDate(date) : label,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: date != null ? null : Colors.grey,
-              ),
-            ),
-            const Icon(Iconsax.calendar, size: 20),
-          ],
-        ),
+        },
+        onReset: () {
+          setState(() {
+            _selectedCategory = 'all';
+            _startDate = null;
+            _endDate = null;
+          });
+        },
       ),
     );
   }
@@ -786,6 +631,320 @@ class _TransactionsScreenState extends State<TransactionsScreen>
       context,
       MaterialPageRoute(
         builder: (_) => AddTransactionScreen(transaction: transaction),
+      ),
+    );
+  }
+}
+
+// ============ FILTER SHEET WIDGET ============
+class _FilterSheet extends StatefulWidget {
+  final String selectedCategory;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final Function(String category, DateTime? start, DateTime? end) onApply;
+  final VoidCallback onReset;
+
+  const _FilterSheet({
+    required this.selectedCategory,
+    required this.startDate,
+    required this.endDate,
+    required this.onApply,
+    required this.onReset,
+  });
+
+  @override
+  State<_FilterSheet> createState() => _FilterSheetState();
+}
+
+class _FilterSheetState extends State<_FilterSheet> {
+  late String _tempSelectedCategory;
+  DateTime? _tempStartDate;
+  DateTime? _tempEndDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _tempSelectedCategory = widget.selectedCategory;
+    _tempStartDate = widget.startDate;
+    _tempEndDate = widget.endDate;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Filters',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (_tempStartDate != null ||
+                    _tempEndDate != null ||
+                    _tempSelectedCategory != 'all')
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _tempSelectedCategory = 'all';
+                        _tempStartDate = null;
+                        _tempEndDate = null;
+                      });
+                    },
+                    child: Text(
+                      'Clear All',
+                      style: GoogleFonts.inter(
+                        color: Colors.red,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              children: [
+                Text(
+                  'Category',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    'all',
+                    ...AppConstants.expenseCategories,
+                    ...AppConstants.incomeCategories
+                  ].map((category) => _buildCategoryChip(category)).toList(),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Date Range',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDateButton(
+                        'Start Date',
+                        _tempStartDate,
+                        true,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildDateButton(
+                        'End Date',
+                        _tempEndDate,
+                        false,
+                      ),
+                    ),
+                  ],
+                ),
+                if (_tempStartDate != null || _tempEndDate != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Iconsax.info_circle,
+                          color: AppTheme.primaryGreen,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _tempStartDate != null && _tempEndDate != null
+                                ? 'Filtering from ${Helpers.formatDate(_tempStartDate!)} to ${Helpers.formatDate(_tempEndDate!)}'
+                                : _tempStartDate != null
+                                    ? 'Filtering from ${Helpers.formatDate(_tempStartDate!)}'
+                                    : 'Filtering until ${Helpers.formatDate(_tempEndDate!)}',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppTheme.primaryGreen,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    text: 'Reset',
+                    onPressed: () {
+                      widget.onReset();
+                      Navigator.pop(context);
+                    },
+                    textColor: AppTheme.primaryGreen,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: CustomButton(
+                    text: 'Apply Filters',
+                    onPressed: () {
+                      widget.onApply(
+                        _tempSelectedCategory,
+                        _tempStartDate,
+                        _tempEndDate,
+                      );
+                      Navigator.pop(context);
+                    },
+                    gradient: const [
+                      AppTheme.primaryGreen,
+                      AppTheme.primaryTeal
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(String category) {
+    final isSelected = _tempSelectedCategory == category;
+    return GestureDetector(
+      onTap: () => setState(() => _tempSelectedCategory = category),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: isSelected ? AppTheme.primaryGradient : null,
+          color: isSelected ? null : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          category == 'all' ? 'All Categories' : category,
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? Colors.white : Colors.grey.shade700,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateButton(String label, DateTime? date, bool isStart) {
+    return GestureDetector(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: date ?? DateTime.now(),
+          firstDate: DateTime(2020),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+        );
+        if (picked != null) {
+          setState(() {
+            if (isStart) {
+              _tempStartDate = picked;
+            } else {
+              _tempEndDate = picked;
+            }
+          });
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardTheme.color,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: date != null ? AppTheme.primaryGreen : Colors.grey.shade300,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Iconsax.calendar,
+                  size: 16,
+                  color: date != null
+                      ? AppTheme.primaryGreen
+                      : Colors.grey.shade500,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              date != null ? Helpers.formatDate(date) : 'Select date',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: date != null ? null : Colors.grey.shade400,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
