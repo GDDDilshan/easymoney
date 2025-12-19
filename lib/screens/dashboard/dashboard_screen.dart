@@ -38,17 +38,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
 
   Widget _buildBottomNav() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1E293B)
+            : Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
@@ -82,22 +85,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _selectedIndex == index;
 
-    return GestureDetector(
-      onTap: () => setState(() => _selectedIndex = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: isSelected ? AppTheme.primaryGradient : null,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? Colors.white : Colors.grey,
-          size: 24,
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: isSelected ? AppTheme.primaryGradient : null,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : Colors.grey,
+                size: 24,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : Colors.grey,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
-    ).animate(target: isSelected ? 1 : 0).scale(duration: 200.ms);
+    );
   }
 }
 
@@ -231,7 +256,6 @@ class DashboardHome extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
-          // Main Balance Card
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
@@ -311,16 +335,14 @@ class DashboardHome extends StatelessWidget {
               ],
             ),
           ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
-
           const SizedBox(height: 16),
-
-          // Quick Stats Row
           Row(
             children: [
               Expanded(
                 child: StatCard(
                   title: 'Transactions',
-                  value: '${transactionProvider.transactions.length}',
+                  value:
+                      '${Provider.of<TransactionProvider>(context).transactions.length}',
                   icon: Iconsax.document_text,
                   gradient: const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                 ),
@@ -329,7 +351,8 @@ class DashboardHome extends StatelessWidget {
               Expanded(
                 child: StatCard(
                   title: 'Categories',
-                  value: '${transactionProvider.getCategorySpending().length}',
+                  value:
+                      '${Provider.of<TransactionProvider>(context).getCategorySpending().length}',
                   icon: Iconsax.category,
                   gradient: const [Color(0xFFF59E0B), Color(0xFFF97316)],
                 ),
