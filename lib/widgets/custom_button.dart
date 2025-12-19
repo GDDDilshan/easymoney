@@ -34,7 +34,7 @@ class CustomButton extends StatelessWidget {
         boxShadow: [
           if (gradient != null)
             BoxShadow(
-              color: gradient!.first.withOpacity(0.3),
+              color: gradient!.first.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

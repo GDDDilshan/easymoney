@@ -1,4 +1,4 @@
-// lib/main.dart
+// lib/main.dart - FIXED VERSION
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -17,9 +17,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase initialization error: $e');
+  }
 
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
@@ -48,9 +52,18 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => TransactionProvider()),
-        ChangeNotifierProvider(create: (_) => BudgetProvider()),
-        ChangeNotifierProvider(create: (_) => GoalProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, TransactionProvider>(
+          create: (_) => TransactionProvider(),
+          update: (_, auth, previous) => previous ?? TransactionProvider(),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, BudgetProvider>(
+          create: (_) => BudgetProvider(),
+          update: (_, auth, previous) => previous ?? BudgetProvider(),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, GoalProvider>(
+          create: (_) => GoalProvider(),
+          update: (_, auth, previous) => previous ?? GoalProvider(),
+        ),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
@@ -65,74 +78,8 @@ class MyApp extends StatelessWidget {
 
             // Home screen
             home: const SplashScreen(),
-
-            // Navigation routes (optional)
-            // routes: {
-            //   '/login': (context) => const LoginScreen(),
-            //   '/dashboard': (context) => const DashboardScreen(),
-            //   // Add more routes as needed
-            // },
           );
         },
-      ),
-    );
-  }
-}
-
-// Optional: Add a simple error widget for better error handling
-class AppErrorWidget extends StatelessWidget {
-  final FlutterErrorDetails errorDetails;
-
-  const AppErrorWidget({
-    super.key,
-    required this.errorDetails,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(40),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  color: Colors.red,
-                  size: 80,
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Oops! Something went wrong',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  errorDetails.exception.toString(),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 30),
-                ElevatedButton(
-                  onPressed: () {
-                    // Restart app or navigate back
-                  },
-                  child: const Text('Try Again'),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

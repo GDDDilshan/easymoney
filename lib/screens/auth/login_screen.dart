@@ -91,7 +91,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(25),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF10B981).withOpacity(0.5),
+                            color:
+                                const Color(0xFF10B981).withValues(alpha: 0.5),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -137,10 +138,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Email Field
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                         ),
                       ),
                       child: TextFormField(
@@ -149,11 +150,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           hintText: 'Email',
-                          hintStyle:
-                              TextStyle(color: Colors.white.withOpacity(0.5)),
+                          hintStyle: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5)),
                           prefixIcon: Icon(
                             Icons.email_outlined,
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white.withValues(alpha: 0.7),
                           ),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.all(20),
@@ -178,10 +179,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Password Field
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                         ),
                       ),
                       child: TextFormField(
@@ -190,18 +191,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           hintText: 'Password',
-                          hintStyle:
-                              TextStyle(color: Colors.white.withOpacity(0.5)),
+                          hintStyle: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5)),
                           prefixIcon: Icon(
                             Icons.lock_outline,
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white.withValues(alpha: 0.7),
                           ),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
                                   ? Icons.visibility_off
                                   : Icons.visibility,
-                              color: Colors.white.withOpacity(0.7),
+                              color: Colors.white.withValues(alpha: 0.7),
                             ),
                             onPressed: () {
                               setState(

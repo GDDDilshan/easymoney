@@ -1,3 +1,4 @@
+// lib/screens/budget/budget_screen.dart - FIXED withOpacity issues
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,7 +9,6 @@ import '../../providers/transaction_provider.dart';
 import '../../models/budget_model.dart';
 import '../../utils/helpers.dart';
 import '../../utils/theme.dart';
-import '../../utils/constants.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/empty_state.dart';
 import 'add_budget_screen.dart';
@@ -114,7 +114,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.primaryGreen.withOpacity(0.3),
+                  color: AppTheme.primaryGreen.withValues(alpha: 0.3), // FIXED
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -148,7 +148,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryGreen.withOpacity(0.3),
+            color: AppTheme.primaryGreen.withValues(alpha: 0.3), // FIXED
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -163,14 +163,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 'Total Budget',
                 style: GoogleFonts.inter(
                   fontSize: 14,
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9), // FIXED
                 ),
               ),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2), // FIXED
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -198,7 +198,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
               value: percentUsed / 100,
-              backgroundColor: Colors.white.withOpacity(0.3),
+              backgroundColor: Colors.white.withValues(alpha: 0.3), // FIXED
               valueColor: AlwaysStoppedAnimation<Color>(
                 percentUsed > 100 ? Colors.red : Colors.white,
               ),
@@ -226,7 +226,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15), // FIXED
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -247,7 +247,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
             label,
             style: GoogleFonts.inter(
               fontSize: 10,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8), // FIXED
             ),
           ),
         ],
@@ -305,15 +305,15 @@ class _BudgetScreenState extends State<BudgetScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isOverBudget
-                ? Colors.red.withOpacity(0.3)
+                ? Colors.red.withValues(alpha: 0.3) // FIXED
                 : isNearLimit
-                    ? Colors.orange.withOpacity(0.3)
+                    ? Colors.orange.withValues(alpha: 0.3) // FIXED
                     : Colors.transparent,
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05), // FIXED
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -329,7 +329,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   height: 48,
                   decoration: BoxDecoration(
                     color: Helpers.getCategoryColor(budget.category)
-                        .withOpacity(0.2),
+                        .withValues(alpha: 0.2), // FIXED
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -365,7 +365,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1), // FIXED
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -388,7 +388,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1), // FIXED
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(

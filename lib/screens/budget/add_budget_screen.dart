@@ -147,7 +147,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -224,7 +224,8 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? Helpers.getCategoryColor(category).withOpacity(0.2)
+                      ? Helpers.getCategoryColor(category)
+                          .withValues(alpha: 0.2)
                       : Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
@@ -312,7 +313,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -371,10 +372,10 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.primaryGreen.withOpacity(0.1),
+        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppTheme.primaryGreen.withOpacity(0.3),
+          color: AppTheme.primaryGreen.withValues(alpha: 0.3),
         ),
       ),
       child: Column(

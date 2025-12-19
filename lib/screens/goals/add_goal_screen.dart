@@ -201,7 +201,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
             border: Border.all(color: Colors.grey.shade300),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -326,7 +326,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryGreen.withOpacity(0.1),
+                    color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Iconsax.calendar,
@@ -406,7 +406,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                   boxShadow: [
                     if (isSelected)
                       BoxShadow(
-                        color: color.withOpacity(0.4),
+                        color: color.withValues(alpha: 0.4),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -436,15 +436,15 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
         gradient: LinearGradient(
           colors: [
             Color(int.parse(_selectedColor.replaceFirst('#', '0xFF')))
-                .withOpacity(0.1),
+                .withValues(alpha: 0.1),
             Color(int.parse(_selectedColor.replaceFirst('#', '0xFF')))
-                .withOpacity(0.05),
+                .withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: Color(int.parse(_selectedColor.replaceFirst('#', '0xFF')))
-              .withOpacity(0.3),
+              .withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -536,7 +536,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
       gradient: [
         Color(int.parse(_selectedColor.replaceFirst('#', '0xFF'))),
         Color(int.parse(_selectedColor.replaceFirst('#', '0xFF')))
-            .withOpacity(0.7),
+            .withValues(alpha: 0.7),
       ],
       width: double.infinity,
     ).animate().fadeIn(delay: 700.ms).slideY(begin: 0.2, end: 0);

@@ -128,7 +128,7 @@ class _GoalsScreenState extends State<GoalsScreen>
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.primaryGreen.withOpacity(0.3),
+                  color: AppTheme.primaryGreen.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -235,12 +235,12 @@ class _GoalsScreenState extends State<GoalsScreen>
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: Color(int.parse(goal.color.replaceFirst('#', '0xFF')))
-                .withOpacity(0.3),
+                .withValues(alpha: 0.3),
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -257,7 +257,7 @@ class _GoalsScreenState extends State<GoalsScreen>
                   decoration: BoxDecoration(
                     color:
                         Color(int.parse(goal.color.replaceFirst('#', '0xFF')))
-                            .withOpacity(0.2),
+                            .withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
@@ -294,7 +294,7 @@ class _GoalsScreenState extends State<GoalsScreen>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen.withOpacity(0.1),
+                      color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -318,7 +318,7 @@ class _GoalsScreenState extends State<GoalsScreen>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -430,7 +430,7 @@ class _GoalsScreenState extends State<GoalsScreen>
                 gradient: [
                   Color(int.parse(goal.color.replaceFirst('#', '0xFF'))),
                   Color(int.parse(goal.color.replaceFirst('#', '0xFF')))
-                      .withOpacity(0.7),
+                      .withValues(alpha: 0.7),
                 ],
                 height: 44,
               ),
