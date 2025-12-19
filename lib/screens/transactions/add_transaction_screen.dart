@@ -415,11 +415,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Widget _buildDatePicker() {
     return GestureDetector(
       onTap: () async {
+        final now = DateTime.now();
         final picked = await showDatePicker(
           context: context,
           initialDate: _selectedDate,
-          firstDate: DateTime(2020),
-          lastDate: DateTime.now(),
+          firstDate: DateTime(2000), // Allow selection from year 2000
+          lastDate: now, // Block future dates - can only select up to today
         );
         if (picked != null) {
           setState(() => _selectedDate = picked);

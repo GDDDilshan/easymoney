@@ -793,10 +793,10 @@ class _FilterSheetState extends State<_FilterSheet> {
                         Expanded(
                           child: Text(
                             _tempStartDate != null && _tempEndDate != null
-                                ? 'Filtering from ${Helpers.formatDate(_tempStartDate!)} to ${Helpers.formatDate(_tempEndDate!)}'
+                                ? 'From ${Helpers.formatDate(_tempStartDate!)} to ${Helpers.formatDate(_tempEndDate!)}'
                                 : _tempStartDate != null
-                                    ? 'Filtering from ${Helpers.formatDate(_tempStartDate!)}'
-                                    : 'Filtering until ${Helpers.formatDate(_tempEndDate!)}',
+                                    ? 'From ${Helpers.formatDate(_tempStartDate!)}'
+                                    : 'Until ${Helpers.formatDate(_tempEndDate!)}',
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               color: AppTheme.primaryGreen,
@@ -837,7 +837,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: CustomButton(
-                    text: 'Apply Filters',
+                    text: 'Apply',
                     onPressed: () {
                       widget.onApply(
                         _tempSelectedCategory,
@@ -887,13 +887,38 @@ class _FilterSheetState extends State<_FilterSheet> {
   Widget _buildDateButton(String label, DateTime? date, bool isStart) {
     return GestureDetector(
       onTap: () async {
+        final now = DateTime.now();
         final picked = await showDatePicker(
           context: context,
-          initialDate: date ?? DateTime.now(),
-          firstDate: DateTime(2020),
-          lastDate: DateTime.now().add(const Duration(days: 365)),
+          initialDate: date ?? now,
+          firstDate: DateTime(2000), // Allow selection from year 2000
+          lastDate: now, // Block future dates - can only select up to today
         );
         if (picked != null) {
+          // Validate date range
+          if (isStart &&
+              _tempEndDate != null &&
+              picked.isAfter(_tempEndDate!)) {
+            // Show error if start date is after end date
+            Helpers.showSnackBar(
+              context,
+              'Start date cannot be after end date',
+              isError: true,
+            );
+            return;
+          }
+          if (!isStart &&
+              _tempStartDate != null &&
+              picked.isBefore(_tempStartDate!)) {
+            // Show error if end date is before start date
+            Helpers.showSnackBar(
+              context,
+              'End date cannot be before start date',
+              isError: true,
+            );
+            return;
+          }
+
           setState(() {
             if (isStart) {
               _tempStartDate = picked;
@@ -936,7 +961,7 @@ class _FilterSheetState extends State<_FilterSheet> {
             ),
             const SizedBox(height: 4),
             Text(
-              date != null ? Helpers.formatDate(date) : 'Select date',
+              date != null ? Helpers.formatDate(date) : 'Not selected',
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
