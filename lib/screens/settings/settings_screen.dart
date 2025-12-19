@@ -21,7 +21,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   String _selectedCurrency = 'USD';
   bool _notificationsEnabled = true;
-  bool _biometricEnabled = false;
 
   @override
   void initState() {
@@ -98,18 +97,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildSettingsSection(
                   'Security',
                   [
-                    _buildSettingItem(
-                      'Biometric Login',
-                      'Use fingerprint or face ID',
-                      Iconsax.finger_scan,
-                      trailing: Switch(
-                        value: _biometricEnabled,
-                        onChanged: (value) {
-                          setState(() => _biometricEnabled = value);
-                        },
-                        activeColor: AppTheme.primaryGreen,
-                      ),
-                    ),
                     _buildSettingItem(
                       'Change Password',
                       'Update your password',
@@ -496,7 +483,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   displayName: newName,
                 );
                 await authProvider.updateUserProfile(updatedUser);
-                if (context.mounted) {
+                if (mounted) {
                   Navigator.pop(context);
                   Helpers.showSnackBar(context, 'Profile updated');
                 }
@@ -513,64 +500,168 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showChangePasswordDialog() {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    bool obscureCurrentPassword = true;
+    bool obscureNewPassword = true;
+    bool obscureConfirmPassword = true;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Change Password',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Current Password',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'Change Password',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Current Password
+                TextFormField(
+                  controller: currentPasswordController,
+                  obscureText: obscureCurrentPassword,
+                  decoration: InputDecoration(
+                    labelText: 'Current Password',
+                    hintText: 'Enter your current password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureCurrentPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                      ),
+                      onPressed: () {
+                        setState(() =>
+                            obscureCurrentPassword = !obscureCurrentPassword);
+                      },
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'New Password',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 16),
+                // New Password
+                TextFormField(
+                  controller: newPasswordController,
+                  obscureText: obscureNewPassword,
+                  decoration: InputDecoration(
+                    labelText: 'New Password',
+                    hintText: 'Enter your new password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureNewPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                      ),
+                      onPressed: () {
+                        setState(
+                            () => obscureNewPassword = !obscureNewPassword);
+                      },
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 16),
+                // Confirm Password
+                TextFormField(
+                  controller: confirmPasswordController,
+                  obscureText: obscureConfirmPassword,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm New Password',
+                    hintText: 'Confirm your new password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureConfirmPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                      ),
+                      onPressed: () {
+                        setState(() =>
+                            obscureConfirmPassword = !obscureConfirmPassword);
+                      },
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            TextField(
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Confirm New Password',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: GoogleFonts.inter()),
+            ),
+            TextButton(
+              onPressed: () async {
+                // Validation
+                if (currentPasswordController.text.isEmpty) {
+                  Helpers.showSnackBar(context, 'Please enter current password',
+                      isError: true);
+                  return;
+                }
+                if (newPasswordController.text.isEmpty) {
+                  Helpers.showSnackBar(context, 'Please enter new password',
+                      isError: true);
+                  return;
+                }
+                if (newPasswordController.text.length < 6) {
+                  Helpers.showSnackBar(
+                      context, 'Password must be at least 6 characters',
+                      isError: true);
+                  return;
+                }
+                if (newPasswordController.text !=
+                    confirmPasswordController.text) {
+                  Helpers.showSnackBar(context, 'Passwords do not match',
+                      isError: true);
+                  return;
+                }
+                if (currentPasswordController.text ==
+                    newPasswordController.text) {
+                  Helpers.showSnackBar(
+                      context, 'New password must be different from current',
+                      isError: true);
+                  return;
+                }
+
+                try {
+                  final authProvider =
+                      Provider.of<AuthProvider>(context, listen: false);
+                  await authProvider.changePassword(
+                    currentPassword: currentPasswordController.text,
+                    newPassword: newPasswordController.text,
+                  );
+
+                  if (mounted) {
+                    Navigator.pop(context);
+                    Helpers.showSnackBar(
+                        context, 'Password changed successfully');
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    Helpers.showSnackBar(context, e.toString(), isError: true);
+                  }
+                }
+              },
+              child: Text(
+                'Change',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryGreen,
                 ),
               ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.inter()),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Helpers.showSnackBar(context, 'Password changed successfully');
-            },
-            child: Text(
-              'Change',
-              style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
       ),
     );
   }

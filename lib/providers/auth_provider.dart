@@ -98,6 +98,25 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // ============ CHANGE PASSWORD ============
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _authService.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> updateUserProfile(UserModel updatedUser) async {
     try {
       await _authService.updateUserData(updatedUser);

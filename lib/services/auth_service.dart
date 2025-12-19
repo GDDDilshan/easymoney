@@ -67,18 +67,54 @@ class AuthService {
     await _auth.signOut();
   }
 
-  // Reset password - FIXED
+  // Reset password - FIXED with email validation
   Future<void> resetPassword(String email) async {
     try {
       // Trim and validate email
       final trimmedEmail = email.trim().toLowerCase();
 
-      // Send password reset email
+      // Check if user exists with this email (will throw if not found)
       await _auth.sendPasswordResetEmail(email: trimmedEmail);
     } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        throw 'No account found with this email address. Please check and try again.';
+      }
       throw _handleAuthException(e);
     } catch (e) {
-      throw 'Error sending password reset email: ${e.toString()}';
+      throw 'Error: ${e.toString()}';
+    }
+  }
+
+  // Change password
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw 'No user is currently logged in';
+      }
+
+      // Re-authenticate user with current password
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: currentPassword,
+      );
+
+      await user.reauthenticateWithCredential(credential);
+
+      // Update password
+      await user.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password') {
+        throw 'Current password is incorrect';
+      } else if (e.code == 'weak-password') {
+        throw 'New password is too weak. Please use a stronger password.';
+      }
+      throw _handleAuthException(e);
+    } catch (e) {
+      throw 'Error changing password: ${e.toString()}';
     }
   }
 
