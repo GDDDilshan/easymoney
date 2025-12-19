@@ -67,21 +67,31 @@ class AuthService {
     await _auth.signOut();
   }
 
-  // Reset password - FIXED with email validation
+  // Reset password - Proper email validation
   Future<void> resetPassword(String email) async {
     try {
       // Trim and validate email
       final trimmedEmail = email.trim().toLowerCase();
 
-      // Check if user exists with this email (will throw if not found)
+      // Fetch user by email to check if exists
+      final List<String> signInMethods =
+          await _auth.fetchSignInMethodsForEmail(trimmedEmail);
+
+      // If no sign-in methods found, user doesn't exist
+      if (signInMethods.isEmpty) {
+        throw 'No account found with this email address. Please sign up first.';
+      }
+
+      // User exists, send password reset email
       await _auth.sendPasswordResetEmail(email: trimmedEmail);
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        throw 'No account found with this email address. Please check and try again.';
+      if (e.code == 'invalid-email') {
+        throw 'Invalid email address format. Please check and try again.';
       }
       throw _handleAuthException(e);
     } catch (e) {
-      throw 'Error: ${e.toString()}';
+      // Re-throw our custom error messages
+      rethrow;
     }
   }
 
