@@ -1,3 +1,6 @@
+// lib/screens/dashboard/dashboard_screen.dart
+// Replace your entire dashboard_screen.dart file with this code
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -696,6 +699,12 @@ class DashboardHome extends StatelessWidget {
 
   Widget _buildTransactionItem(transaction) {
     final isIncome = transaction.type == 'income';
+    final now = DateTime.now();
+    final currentYear = now.year;
+    final transactionYear = transaction.date.year;
+
+    // Smart date formatting - show year only for old transactions
+    final dateFormat = transactionYear == currentYear ? 'MMM d' : 'MMM d, yyyy';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -740,7 +749,7 @@ class DashboardHome extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${transaction.category} • ${Helpers.formatDate(transaction.date, format: 'MMM d')}',
+                  '${transaction.category} • ${Helpers.formatDate(transaction.date, format: dateFormat)}',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: Colors.grey,
