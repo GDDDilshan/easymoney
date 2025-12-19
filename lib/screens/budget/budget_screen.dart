@@ -1,4 +1,3 @@
-// lib/screens/budget/budget_screen.dart - FIXED withOpacity issues
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -51,13 +50,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 child: budgetProvider.isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : budgetProvider.budgets.isEmpty
-                        ? EmptyState(
-                            icon: Iconsax.chart_21,
-                            title: 'No Budgets Set',
-                            message:
-                                'Create your first budget to start tracking spending',
-                            actionText: 'Create Budget',
-                            onAction: _navigateToAddBudget,
+                        ? Padding(
+                            padding: const EdgeInsets.only(bottom: 80),
+                            child: EmptyState(
+                              icon: Iconsax.chart_21,
+                              title: 'No Budgets Set',
+                              message:
+                                  'Create your first budget to start tracking spending',
+                            ),
                           )
                         : _buildBudgetList(budgetProvider, transactionProvider),
               ),
@@ -87,25 +87,27 @@ class _BudgetScreenState extends State<BudgetScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Budget',
-                style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.displayLarge?.color,
-                ),
-              ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2, end: 0),
-              Text(
-                '${budgetProvider.budgets.length} budgets created',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ).animate().fadeIn(delay: 200.ms),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Budget',
+                  style: GoogleFonts.poppins(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.displayLarge?.color,
+                  ),
+                ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2, end: 0),
+                Text(
+                  '${budgetProvider.budgets.length} budgets created',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ).animate().fadeIn(delay: 200.ms),
+              ],
+            ),
           ),
           Container(
             padding: const EdgeInsets.all(12),
@@ -114,7 +116,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.primaryGreen.withValues(alpha: 0.3), // FIXED
+                  color: AppTheme.primaryGreen.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -148,13 +150,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryGreen.withValues(alpha: 0.3), // FIXED
+            color: AppTheme.primaryGreen.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -163,14 +166,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 'Total Budget',
                 style: GoogleFonts.inter(
                   fontSize: 14,
-                  color: Colors.white.withValues(alpha: 0.9), // FIXED
+                  color: Colors.white.withValues(alpha: 0.9),
                 ),
               ),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2), // FIXED
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -198,7 +201,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
               value: percentUsed / 100,
-              backgroundColor: Colors.white.withValues(alpha: 0.3), // FIXED
+              backgroundColor: Colors.white.withValues(alpha: 0.3),
               valueColor: AlwaysStoppedAnimation<Color>(
                 percentUsed > 100 ? Colors.red : Colors.white,
               ),
@@ -207,13 +210,20 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ),
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStatItem('Spent', totalSpent, Iconsax.arrow_up_3),
-              _buildStatItem('Remaining', remaining, Iconsax.wallet),
-              _buildStatItem(
-                  'Used', percentUsed.toDouble(), Iconsax.percentage_circle,
-                  isPercent: true),
+              Expanded(
+                child: _buildStatItem('Spent', totalSpent, Iconsax.arrow_up_3),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatItem('Remaining', remaining, Iconsax.wallet),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatItem(
+                    'Used', percentUsed.toDouble(), Iconsax.percentage_circle,
+                    isPercent: true),
+              ),
             ],
           ),
         ],
@@ -226,28 +236,38 @@ class _BudgetScreenState extends State<BudgetScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15), // FIXED
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: Colors.white, size: 20),
           const SizedBox(height: 6),
-          Text(
-            isPercent
-                ? '${value.toStringAsFixed(0)}%'
-                : Helpers.formatCurrency(value, 'USD'),
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              isPercent
+                  ? '${value.toStringAsFixed(0)}%'
+                  : Helpers.formatCurrency(value, 'USD'),
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              maxLines: 1,
             ),
           ),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              color: Colors.white.withValues(alpha: 0.8), // FIXED
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+              maxLines: 1,
             ),
           ),
         ],
@@ -264,7 +284,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
         transactionProvider.getCategorySpending(startOfMonth, endOfMonth);
 
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
       itemCount: budgetProvider.budgets.length,
       itemBuilder: (context, index) {
         final budget = budgetProvider.budgets[index];
@@ -305,15 +325,15 @@ class _BudgetScreenState extends State<BudgetScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isOverBudget
-                ? Colors.red.withValues(alpha: 0.3) // FIXED
+                ? Colors.red.withValues(alpha: 0.3)
                 : isNearLimit
-                    ? Colors.orange.withValues(alpha: 0.3) // FIXED
+                    ? Colors.orange.withValues(alpha: 0.3)
                     : Colors.transparent,
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05), // FIXED
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -321,6 +341,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
@@ -329,7 +350,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   height: 48,
                   decoration: BoxDecoration(
                     color: Helpers.getCategoryColor(budget.category)
-                        .withValues(alpha: 0.2), // FIXED
+                        .withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -342,6 +363,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         budget.category,
@@ -365,15 +387,16 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.1), // FIXED
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Iconsax.danger, color: Colors.red, size: 14),
                         const SizedBox(width: 4),
                         Text(
-                          'Over Budget',
+                          'Over',
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -388,16 +411,17 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.1), // FIXED
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Iconsax.warning_2,
                             color: Colors.orange, size: 14),
                         const SizedBox(width: 4),
                         Text(
-                          'Near Limit',
+                          'Near',
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -413,46 +437,61 @@ class _BudgetScreenState extends State<BudgetScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Spent',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: Colors.grey,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Spent',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
-                    Text(
-                      Helpers.formatCurrency(spent, 'USD'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color:
-                            isOverBudget ? Colors.red : AppTheme.primaryGreen,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          Helpers.formatCurrency(spent, 'USD'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isOverBudget
+                                ? Colors.red
+                                : AppTheme.primaryGreen,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Remaining',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: Colors.grey,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Remaining',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
-                    Text(
-                      Helpers.formatCurrency(remaining.abs(), 'USD'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isOverBudget ? Colors.red : Colors.grey.shade700,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          Helpers.formatCurrency(remaining.abs(), 'USD'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isOverBudget
+                                ? Colors.red
+                                : Colors.grey.shade700,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),

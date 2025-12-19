@@ -1,6 +1,3 @@
-// lib/screens/dashboard/dashboard_screen.dart
-// Replace your entire dashboard_screen.dart file with this code
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
