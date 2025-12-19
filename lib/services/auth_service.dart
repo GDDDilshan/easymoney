@@ -67,12 +67,18 @@ class AuthService {
     await _auth.signOut();
   }
 
-  // Reset password
+  // Reset password - FIXED
   Future<void> resetPassword(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email);
+      // Trim and validate email
+      final trimmedEmail = email.trim().toLowerCase();
+
+      // Send password reset email
+      await _auth.sendPasswordResetEmail(email: trimmedEmail);
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
+    } catch (e) {
+      throw 'Error sending password reset email: ${e.toString()}';
     }
   }
 
@@ -105,19 +111,23 @@ class AuthService {
   String _handleAuthException(FirebaseAuthException e) {
     switch (e.code) {
       case 'weak-password':
-        return 'The password is too weak';
+        return 'The password is too weak. Please use a stronger password.';
       case 'email-already-in-use':
-        return 'An account already exists with this email';
+        return 'An account already exists with this email address.';
       case 'user-not-found':
-        return 'No user found with this email';
+        return 'No account found with this email address.';
       case 'wrong-password':
-        return 'Wrong password provided';
+        return 'Wrong password. Please try again.';
       case 'invalid-email':
-        return 'Invalid email address';
+        return 'Invalid email address format.';
       case 'user-disabled':
-        return 'This account has been disabled';
+        return 'This account has been disabled.';
       case 'too-many-requests':
-        return 'Too many attempts. Please try again later';
+        return 'Too many login attempts. Please try again later.';
+      case 'operation-not-allowed':
+        return 'Email/password login is not enabled.';
+      case 'invalid-credential':
+        return 'Invalid email or password.';
       default:
         return 'Authentication error: ${e.message}';
     }

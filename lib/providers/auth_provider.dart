@@ -85,6 +85,19 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // ============ PASSWORD RESET ============
+  Future<void> resetPassword(String email) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _authService.resetPassword(email);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> updateUserProfile(UserModel updatedUser) async {
     try {
       await _authService.updateUserData(updatedUser);

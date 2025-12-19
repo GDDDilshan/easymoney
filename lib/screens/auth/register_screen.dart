@@ -125,11 +125,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // Name Field
                     _buildInputField(
                       controller: _nameController,
-                      hint: 'Full Name',
+                      label: 'Full Name',
+                      hint: 'John Doe',
                       icon: Icons.person_outline,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your name';
+                        }
+                        if (value.length < 2) {
+                          return 'Name must be at least 2 characters';
                         }
                         return null;
                       },
@@ -143,7 +147,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // Email Field
                     _buildInputField(
                       controller: _emailController,
-                      hint: 'Email',
+                      label: 'Email Address',
+                      hint: 'example@email.com',
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
@@ -165,15 +170,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // Password Field
                     _buildInputField(
                       controller: _passwordController,
-                      hint: 'Password',
+                      label: 'Password',
+                      hint: 'Min 6 characters',
                       icon: Icons.lock_outline,
                       obscureText: _obscurePassword,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.white.withValues(alpha: 0.7),
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: Colors.white.withValues(alpha: 0.6),
+                          size: 20,
                         ),
                         onPressed: () {
                           setState(() => _obscurePassword = !_obscurePassword);
@@ -191,15 +198,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // Confirm Password Field
                     _buildInputField(
                       controller: _confirmPasswordController,
-                      hint: 'Confirm Password',
+                      label: 'Confirm Password',
+                      hint: 'Re-enter your password',
                       icon: Icons.lock_outline,
                       obscureText: _obscureConfirmPassword,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureConfirmPassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.white.withValues(alpha: 0.7),
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: Colors.white.withValues(alpha: 0.6),
+                          size: 20,
                         ),
                         onPressed: () {
                           setState(() => _obscureConfirmPassword =
@@ -267,6 +276,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _buildInputField({
     required TextEditingController controller,
+    required String label,
     required String hint,
     required IconData icon,
     bool obscureText = false,
@@ -274,29 +284,205 @@ class _RegisterScreenState extends State<RegisterScreen> {
     Widget? suffixIcon,
     String? Function(String?)? validator,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.white.withValues(alpha: 0.8),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          obscureText: obscureText,
+          keyboardType: keyboardType,
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontSize: 16,
+          ),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.inter(
+              color: Colors.white.withValues(alpha: 0.4),
+              fontSize: 14,
+            ),
+            prefixIcon: Icon(
+              icon,
+              color: Colors.white.withValues(alpha: 0.6),
+              size: 20,
+            ),
+            suffixIcon: suffixIcon,
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.08),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: Colors.white.withValues(alpha: 0.15),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: Colors.white.withValues(alpha: 0.15),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(
+                color: Color(0xFF10B981),
+                width: 2,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+          ),
+          validator: validator,
+        ),
+      ],
+    );
+  }
+}
+
+// ============ FORGOT PASSWORD DIALOG ============
+class ForgotPasswordDialog extends StatefulWidget {
+  final Function(String email) onSubmit;
+
+  const ForgotPasswordDialog({
+    super.key,
+    required this.onSubmit,
+  });
+
+  @override
+  State<ForgotPasswordDialog> createState() => _ForgotPasswordDialogState();
+}
+
+class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
+  final _emailController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        'Reset Password',
+        style: GoogleFonts.poppins(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
         ),
       ),
-      child: TextFormField(
-        controller: controller,
-        obscureText: obscureText,
-        keyboardType: keyboardType,
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-          prefixIcon: Icon(icon, color: Colors.white.withValues(alpha: 0.7)),
-          suffixIcon: suffixIcon,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(20),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Enter your email address and we\'ll send you a link to reset your password.',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              style: GoogleFonts.inter(fontSize: 14),
+              decoration: InputDecoration(
+                labelText: 'Email Address',
+                hintText: 'Enter your email',
+                prefixIcon: const Icon(Icons.email_outlined),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Colors.grey.shade300,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF10B981),
+                    width: 2,
+                  ),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+              ),
+            ),
+          ],
         ),
-        validator: validator,
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            'Cancel',
+            style: GoogleFonts.inter(
+              color: Colors.grey,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: _isLoading
+              ? null
+              : () {
+                  final email = _emailController.text.trim();
+                  if (email.isEmpty) {
+                    Helpers.showSnackBar(
+                      context,
+                      'Please enter your email',
+                      isError: true,
+                    );
+                    return;
+                  }
+                  if (!Helpers.isValidEmail(email)) {
+                    Helpers.showSnackBar(
+                      context,
+                      'Please enter a valid email',
+                      isError: true,
+                    );
+                    return;
+                  }
+
+                  setState(() => _isLoading = true);
+                  widget.onSubmit(email);
+                },
+          child: _isLoading
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(
+                      Colors.blue.shade600,
+                    ),
+                  ),
+                )
+              : Text(
+                  'Send Reset Link',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade600,
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }
