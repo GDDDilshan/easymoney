@@ -33,7 +33,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -294,6 +294,13 @@ class _TransactionsScreenState extends State<TransactionsScreen>
       ),
       child: TabBar(
         controller: _tabController,
+        onTap: (index) {
+          // Clear custom date range when switching tabs
+          setState(() {
+            _startDate = null;
+            _endDate = null;
+          });
+        },
         indicator: BoxDecoration(
           gradient: AppTheme.primaryGradient,
           borderRadius: BorderRadius.circular(12),
@@ -305,6 +312,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
           fontWeight: FontWeight.w600,
         ),
         tabs: const [
+          Tab(text: 'All'),
           Tab(text: 'Today'),
           Tab(text: 'This Week'),
           Tab(text: 'This Month'),
@@ -516,38 +524,42 @@ class _TransactionsScreenState extends State<TransactionsScreen>
           transactions.where((t) => t.category == _selectedCategory).toList();
     }
 
-    // Filter by date range
+    // Filter by date range (only if user explicitly set dates)
     if (_startDate != null && _endDate != null) {
       transactions = transactions
           .where((t) =>
               t.date.isAfter(_startDate!.subtract(const Duration(days: 1))) &&
               t.date.isBefore(_endDate!.add(const Duration(days: 1))))
           .toList();
-    }
-
-    // Filter by tab
-    final now = DateTime.now();
-    switch (_tabController.index) {
-      case 0: // Today
-        transactions = transactions
-            .where((t) =>
-                t.date.year == now.year &&
-                t.date.month == now.month &&
-                t.date.day == now.day)
-            .toList();
-        break;
-      case 1: // This Week
-        final weekStart = now.subtract(Duration(days: now.weekday - 1));
-        transactions = transactions
-            .where((t) =>
-                t.date.isAfter(weekStart.subtract(const Duration(days: 1))))
-            .toList();
-        break;
-      case 2: // This Month
-        transactions = transactions
-            .where((t) => t.date.year == now.year && t.date.month == now.month)
-            .toList();
-        break;
+    } else {
+      // Apply tab filter only when no custom date range is set
+      final now = DateTime.now();
+      switch (_tabController.index) {
+        case 0: // All - show all transactions
+          // Don't filter by date, show everything
+          break;
+        case 1: // Today
+          transactions = transactions
+              .where((t) =>
+                  t.date.year == now.year &&
+                  t.date.month == now.month &&
+                  t.date.day == now.day)
+              .toList();
+          break;
+        case 2: // This Week
+          final weekStart = now.subtract(Duration(days: now.weekday - 1));
+          transactions = transactions
+              .where((t) =>
+                  t.date.isAfter(weekStart.subtract(const Duration(days: 1))))
+              .toList();
+          break;
+        case 3: // This Month
+          transactions = transactions
+              .where(
+                  (t) => t.date.year == now.year && t.date.month == now.month)
+              .toList();
+          break;
+      }
     }
 
     return transactions;
@@ -825,19 +837,32 @@ class _FilterSheetState extends State<_FilterSheet> {
             child: Row(
               children: [
                 Expanded(
-                  child: CustomButton(
-                    text: 'Reset',
+                  child: OutlinedButton(
                     onPressed: () {
                       widget.onReset();
                       Navigator.pop(context);
                     },
-                    textColor: AppTheme.primaryGreen,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primaryGreen,
+                      side: const BorderSide(
+                          color: AppTheme.primaryGreen, width: 2),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: CustomButton(
-                    text: 'Apply',
+                  child: ElevatedButton(
                     onPressed: () {
                       widget.onApply(
                         _tempSelectedCategory,
@@ -846,10 +871,22 @@ class _FilterSheetState extends State<_FilterSheet> {
                       );
                       Navigator.pop(context);
                     },
-                    gradient: const [
-                      AppTheme.primaryGreen,
-                      AppTheme.primaryTeal
-                    ],
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      'Apply',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ],
