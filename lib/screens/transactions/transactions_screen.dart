@@ -212,6 +212,11 @@ class _TransactionsScreenState extends State<TransactionsScreen>
   }
 
   Widget _buildFilters() {
+    final hasActiveFilters = _selectedType != 'all' ||
+        _selectedCategory != 'all' ||
+        _startDate != null ||
+        _endDate != null;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
@@ -240,20 +245,63 @@ class _TransactionsScreenState extends State<TransactionsScreen>
             ),
           ),
           const SizedBox(width: 8),
-          IconButton(
-            onPressed: _showFilterDialog,
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryGreen.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+          Stack(
+            children: [
+              IconButton(
+                onPressed: _showFilterDialog,
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient:
+                        hasActiveFilters ? AppTheme.primaryGradient : null,
+                    color: hasActiveFilters
+                        ? null
+                        : AppTheme.primaryGreen.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: hasActiveFilters
+                        ? [
+                            BoxShadow(
+                              color:
+                                  AppTheme.primaryGreen.withValues(alpha: 0.4),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Icon(
+                    Iconsax.filter,
+                    color:
+                        hasActiveFilters ? Colors.white : AppTheme.primaryGreen,
+                    size: 20,
+                  ),
+                ),
               ),
-              child: const Icon(
-                Iconsax.filter,
-                color: AppTheme.primaryGreen,
-                size: 20,
-              ),
-            ),
+              if (hasActiveFilters)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                  )
+                      .animate(onPlay: (controller) => controller.repeat())
+                      .scale(
+                          duration: 1000.ms,
+                          begin: const Offset(1, 1),
+                          end: const Offset(1.2, 1.2))
+                      .then()
+                      .scale(
+                          duration: 1000.ms,
+                          begin: const Offset(1.2, 1.2),
+                          end: const Offset(1, 1)),
+                ),
+            ],
           ),
         ],
       ),
@@ -443,7 +491,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
                           size: 12, color: Colors.grey.shade500),
                       const SizedBox(width: 4),
                       Text(
-                        Helpers.formatDate(transaction.date, format: 'MMM d'),
+                        _getSmartDateFormat(transaction.date),
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: Colors.grey.shade600,
@@ -645,6 +693,21 @@ class _TransactionsScreenState extends State<TransactionsScreen>
         builder: (_) => AddTransactionScreen(transaction: transaction),
       ),
     );
+  }
+
+  // Smart date formatting - show year only for old transactions
+  String _getSmartDateFormat(DateTime date) {
+    final now = DateTime.now();
+    final currentYear = now.year;
+    final transactionYear = date.year;
+
+    if (transactionYear == currentYear) {
+      // Current year - show only month and day
+      return Helpers.formatDate(date, format: 'MMM d');
+    } else {
+      // Old year - show month, day, and year
+      return Helpers.formatDate(date, format: 'MMM d, yyyy');
+    }
   }
 }
 
