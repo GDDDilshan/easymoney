@@ -6,6 +6,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../models/goal_model.dart';
 import '../../providers/goal_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../utils/helpers.dart';
 import '../../utils/theme.dart';
 import '../../utils/constants.dart';
@@ -57,6 +58,9 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currency = authProvider.selectedCurrency;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -87,13 +91,13 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                       children: [
                         _buildGoalNameInput(),
                         const SizedBox(height: 20),
-                        _buildAmountInputs(),
+                        _buildAmountInputs(currency),
                         const SizedBox(height: 20),
                         _buildTargetDatePicker(),
                         const SizedBox(height: 20),
                         _buildColorSelector(),
                         const SizedBox(height: 24),
-                        _buildProgressPreview(),
+                        _buildProgressPreview(currency),
                         const SizedBox(height: 32),
                         _buildSaveButton(),
                       ],
@@ -181,7 +185,9 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0);
   }
 
-  Widget _buildAmountInputs() {
+  Widget _buildAmountInputs(String currency) {
+    final currencySymbol = Helpers.getCurrencySymbol(currency);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -212,8 +218,10 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
               TextFormField(
                 controller: _targetAmountController,
                 keyboardType:
-                    const TextInputType.numberWithOptions(decimal: false),
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                ],
                 style: GoogleFonts.poppins(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -221,16 +229,17 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                       int.parse(_selectedColor.replaceFirst('#', '0xFF'))),
                 ),
                 decoration: InputDecoration(
-                  hintText: '0',
+                  hintText: '0.00',
                   hintStyle: GoogleFonts.poppins(
                       fontSize: 28, color: Colors.grey.shade400),
-                  prefixText: '\$ ',
+                  prefixText: '$currencySymbol ',
                   prefixStyle: GoogleFonts.poppins(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.grey.shade400,
                   ),
                   border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -257,17 +266,18 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                         TextFormField(
                           controller: _currentAmountController,
                           keyboardType: const TextInputType.numberWithOptions(
-                              decimal: false),
+                              decimal: true),
                           inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly
+                            FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d*\.?\d{0,2}'))
                           ],
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                           decoration: InputDecoration(
-                            hintText: '0',
-                            prefixText: '\$ ',
+                            hintText: '0.00',
+                            prefixText: '$currencySymbol ',
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.zero,
                           ),
@@ -424,7 +434,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     ).animate().fadeIn(delay: 500.ms);
   }
 
-  Widget _buildProgressPreview() {
+  Widget _buildProgressPreview(String currency) {
     final targetAmount = double.tryParse(_targetAmountController.text) ?? 0;
     final currentAmount = double.tryParse(_currentAmountController.text) ?? 0;
     final progress =
@@ -485,7 +495,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                Helpers.formatCurrency(currentAmount, 'USD'),
+                Helpers.formatCurrency(currentAmount, currency),
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -494,7 +504,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                 ),
               ),
               Text(
-                Helpers.formatCurrency(targetAmount, 'USD'),
+                Helpers.formatCurrency(targetAmount, currency),
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   color: Colors.grey.shade700,

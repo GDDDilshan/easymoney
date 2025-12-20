@@ -6,6 +6,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../models/transaction_model.dart';
 import '../../providers/transaction_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../utils/helpers.dart';
 import '../../utils/theme.dart';
 import '../../utils/constants.dart';
@@ -29,7 +30,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   String _selectedType = 'expense';
   String _selectedCategory = 'Food';
-  String _selectedCurrency = 'USD';
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
   List<String> _tags = [];
@@ -49,10 +49,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final t = widget.transaction!;
     _amountController.text = t.amount.toStringAsFixed(2);
     _descriptionController.text = t.description;
-    _notesController.text = t.notes ?? ''; // NEW: Initialize notes
+    _notesController.text = t.notes ?? '';
     _selectedType = t.type;
     _selectedCategory = t.category;
-    _selectedCurrency = t.currency;
     _selectedDate = t.date;
     _selectedTime = TimeOfDay.fromDateTime(t.date);
     _tags = List.from(t.tags);
@@ -69,6 +68,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currency = authProvider.selectedCurrency;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -99,15 +101,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       children: [
                         _buildTypeSelector(),
                         const SizedBox(height: 24),
-                        _buildAmountInput(),
+                        _buildAmountInput(currency),
                         const SizedBox(height: 20),
                         _buildDescriptionInput(),
                         const SizedBox(height: 20),
                         _buildCategorySection(),
                         const SizedBox(height: 20),
                         _buildDateTimeSection(),
-                        const SizedBox(height: 20),
-                        _buildCurrencySelector(),
                         const SizedBox(height: 20),
                         _buildTagsSection(),
                         const SizedBox(height: 20),
@@ -187,7 +187,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     return GestureDetector(
       onTap: () => setState(() {
         _selectedType = value;
-        // Reset category when type changes
         _selectedCategory = value == 'income'
             ? AppConstants.incomeCategories.first
             : AppConstants.expenseCategories.first;
@@ -226,7 +225,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  Widget _buildAmountInput() {
+  Widget _buildAmountInput(String currency) {
+    final currencySymbol = Helpers.getCurrencySymbol(currency);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -272,7 +273,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               prefixIcon: Padding(
                 padding: const EdgeInsets.only(left: 20, top: 12),
                 child: Text(
-                  AppConstants.currencies[_selectedCurrency] ?? '\$',
+                  currencySymbol,
                   style: GoogleFonts.poppins(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -395,6 +396,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       'Salary': Iconsax.wallet_money,
       'Investment': Iconsax.chart,
       'Gift': Iconsax.gift,
+      'Freelance': Iconsax.briefcase,
+      'Other': Iconsax.category,
     };
     return icons[category] ?? Iconsax.category;
   }
@@ -514,58 +517,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  Widget _buildCurrencySelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Currency',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: AppConstants.currencies.keys.map((currency) {
-            final isSelected = _selectedCurrency == currency;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _selectedCurrency = currency),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: isSelected ? AppTheme.primaryGradient : null,
-                    color:
-                        isSelected ? null : Theme.of(context).cardTheme.color,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected
-                          ? Colors.transparent
-                          : Colors.grey.shade300,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      currency,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected ? Colors.white : Colors.grey.shade700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    ).animate().fadeIn(delay: 700.ms);
-  }
-
   Widget _buildTagsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -663,7 +614,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ),
         ],
       ],
-    ).animate().fadeIn(delay: 800.ms);
+    ).animate().fadeIn(delay: 700.ms);
   }
 
   Widget _buildNotesInput() {
@@ -673,7 +624,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       hint: 'Add any additional notes...',
       prefixIcon: Iconsax.note,
       maxLines: 3,
-    ).animate().fadeIn(delay: 900.ms);
+    ).animate().fadeIn(delay: 800.ms);
   }
 
   Widget _buildSaveButton() {
@@ -684,7 +635,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       isLoading: _isLoading,
       gradient: const [AppTheme.primaryGreen, AppTheme.primaryTeal],
       width: double.infinity,
-    ).animate().fadeIn(delay: 1000.ms).slideY(begin: 0.2, end: 0);
+    ).animate().fadeIn(delay: 900.ms).slideY(begin: 0.2, end: 0);
   }
 
   void _saveTransaction() async {
@@ -693,6 +644,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currency = authProvider.selectedCurrency;
+
       final combinedDateTime = DateTime(
         _selectedDate.year,
         _selectedDate.month,
@@ -708,11 +662,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         category: _selectedCategory,
         description: _descriptionController.text,
         date: combinedDateTime,
-        currency: _selectedCurrency,
+        currency: currency,
         tags: _tags,
         notes: _notesController.text.trim().isEmpty
             ? null
-            : _notesController.text.trim(), // NEW: Save notes
+            : _notesController.text.trim(),
       );
 
       final provider = Provider.of<TransactionProvider>(context, listen: false);
