@@ -82,6 +82,12 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
   Widget _buildHeader(
       BudgetProvider budgetProvider, TransactionProvider transactionProvider) {
+    // Count only current month budgets
+    final now = DateTime.now();
+    final currentMonthBudgets = budgetProvider.budgets
+        .where((b) => b.month == now.month && b.year == now.year)
+        .length;
+
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -100,7 +106,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   ),
                 ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2, end: 0),
                 Text(
-                  '${budgetProvider.budgets.length} budgets created',
+                  '$currentMonthBudgets budgets this month',
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     color: Colors.grey,
@@ -129,13 +135,21 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
   }
 
+  // NEW: Overview card shows ONLY current month data
   Widget _buildOverviewCard(
       BudgetProvider budgetProvider, TransactionProvider transactionProvider) {
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
     final endOfMonth = DateTime(now.year, now.month + 1, 0);
 
-    final totalBudget = budgetProvider.getTotalBudget();
+    // Get only current month budgets
+    final currentMonthBudgets = budgetProvider.budgets
+        .where((b) => b.month == now.month && b.year == now.year)
+        .toList();
+
+    final totalBudget =
+        currentMonthBudgets.fold<double>(0.0, (sum, b) => sum + b.monthlyLimit);
+
     final totalSpent =
         transactionProvider.getTotalExpenses(startOfMonth, endOfMonth);
     final remaining = totalBudget - totalSpent;
@@ -193,7 +207,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   ],
                 ),
                 child: Text(
-                  Helpers.getMonthName(now.month),
+                  Helpers.getMonthName(now.month), // Current month
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: isOverBudget
@@ -272,12 +286,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
     bool isOverBudget = false,
     bool showNegative = false,
   }) {
-    // Premium color mapping for each stat
     late Color iconBgColor;
     late Color iconColor;
     late Color valueColor;
 
-    // Determine colors based on which stat
     if (label == 'Spent') {
       iconBgColor = const Color(0xFFEF4444).withValues(alpha: 0.1);
       iconColor = const Color(0xFFEF4444);
@@ -293,7 +305,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
         valueColor = const Color(0xFF3B82F6);
       }
     } else {
-      // Used percentage
       iconBgColor = const Color(0xFF8B5CF6).withValues(alpha: 0.1);
       iconColor = const Color(0xFF8B5CF6);
       valueColor = const Color(0xFF8B5CF6);
@@ -360,20 +371,47 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
   }
 
+  // NEW: Sort budgets - Current Month first, then Future, then Past
   Widget _buildBudgetList(
       BudgetProvider budgetProvider, TransactionProvider transactionProvider) {
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
     final endOfMonth = DateTime(now.year, now.month + 1, 0);
+
+    // Get category spending for current month
     final categorySpending =
         transactionProvider.getCategorySpending(startOfMonth, endOfMonth);
 
+    // Sort budgets: Current month -> Future -> Past
+    final sortedBudgets = budgetProvider.budgets.toList()
+      ..sort((a, b) {
+        // Current month first
+        if (a.isCurrentMonth && !b.isCurrentMonth) return -1;
+        if (!a.isCurrentMonth && b.isCurrentMonth) return 1;
+
+        // Then future months
+        if (a.isFutureMonth && !b.isFutureMonth) return -1;
+        if (!a.isFutureMonth && b.isFutureMonth) return 1;
+
+        // Within same category (current/future/past), sort by date
+        final aDate = DateTime(a.year, a.month);
+        final bDate = DateTime(b.year, b.month);
+        return aDate.compareTo(bDate);
+      });
+
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
-      itemCount: budgetProvider.budgets.length,
+      itemCount: sortedBudgets.length,
       itemBuilder: (context, index) {
-        final budget = budgetProvider.budgets[index];
-        final spent = categorySpending[budget.category] ?? 0;
+        final budget = sortedBudgets[index];
+
+        // Calculate spent for this budget's specific month
+        final budgetStart = DateTime(budget.year, budget.month, 1);
+        final budgetEnd = DateTime(budget.year, budget.month + 1, 0);
+        final budgetCategorySpending =
+            transactionProvider.getCategorySpending(budgetStart, budgetEnd);
+        final spent = budgetCategorySpending[budget.category] ?? 0;
+
         return _buildBudgetCard(budget, spent, index)
             .animate()
             .fadeIn(delay: (100 * index).ms)
@@ -384,11 +422,29 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
   Widget _buildBudgetCard(BudgetModel budget, double spent, int index) {
     final percentageUsed = (spent / budget.monthlyLimit * 100);
-    final progress =
-        percentageUsed.clamp(0, 100); // For progress bar (clamped to 100%)
+    final progress = percentageUsed.clamp(0, 100);
     final remaining = budget.monthlyLimit - spent;
     final isOverBudget = spent > budget.monthlyLimit;
     final isNearLimit = progress >= budget.alertThreshold;
+
+    // Get status color and label
+    Color statusColor;
+    String statusLabel;
+    IconData statusIcon;
+
+    if (budget.isCurrentMonth) {
+      statusColor = AppTheme.primaryGreen;
+      statusLabel = 'Current';
+      statusIcon = Iconsax.tick_circle;
+    } else if (budget.isFutureMonth) {
+      statusColor = Colors.blue;
+      statusLabel = 'Future';
+      statusIcon = Iconsax.clock;
+    } else {
+      statusColor = Colors.orange;
+      statusLabel = 'Past';
+      statusIcon = Iconsax.archive_book;
+    }
 
     return Dismissible(
       key: Key(budget.id ?? ''),
@@ -415,7 +471,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 ? Colors.red.withValues(alpha: 0.3)
                 : isNearLimit
                     ? Colors.orange.withValues(alpha: 0.3)
-                    : Colors.transparent,
+                    : statusColor.withValues(alpha: 0.2),
             width: 2,
           ),
           boxShadow: [
@@ -459,12 +515,40 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text(
-                        'Limit: ${Helpers.formatCurrency(budget.monthlyLimit, 'USD')}',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: Colors.grey,
-                        ),
+                      Row(
+                        children: [
+                          Icon(
+                            Iconsax.calendar,
+                            size: 12,
+                            color: statusColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            budget.monthYearString, // NEW: Show month/year
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: statusColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              statusLabel,
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                color: statusColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -554,11 +638,37 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 ),
                 Expanded(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Limit',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          Helpers.formatCurrency(budget.monthlyLimit, 'USD'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        isOverBudget ? 'Over Budget' : 'Remaining',
+                        isOverBudget ? 'Over' : 'Left',
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: Colors.grey,
@@ -669,7 +779,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
               style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
             ),
             content: Text(
-              'Are you sure you want to delete the budget for "${budget.category}"?',
+              'Are you sure you want to delete the budget for "${budget.category}" (${budget.monthYearString})?',
               style: GoogleFonts.inter(),
             ),
             actions: [

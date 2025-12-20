@@ -28,9 +28,18 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
   int _alertThreshold = 80;
   bool _isLoading = false;
 
+  // NEW: Month and Year selection
+  late int _selectedMonth;
+  late int _selectedYear;
+
   @override
   void initState() {
     super.initState();
+    // Initialize with current month and year
+    final now = DateTime.now();
+    _selectedMonth = now.month;
+    _selectedYear = now.year;
+
     if (widget.budget != null) {
       _initializeWithBudget();
     }
@@ -41,6 +50,8 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
     _amountController.text = b.monthlyLimit.toStringAsFixed(0);
     _selectedCategory = b.category;
     _alertThreshold = b.alertThreshold;
+    _selectedMonth = b.month; // NEW: Initialize month
+    _selectedYear = b.year; // NEW: Initialize year
   }
 
   @override
@@ -82,6 +93,8 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                         _buildAmountInput(),
                         const SizedBox(height: 24),
                         _buildCategorySection(),
+                        const SizedBox(height: 24),
+                        _buildMonthYearSelector(), // NEW: Month/Year selector
                         const SizedBox(height: 24),
                         _buildAlertThresholdSection(),
                         const SizedBox(height: 24),
@@ -266,6 +279,315 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
     ).animate().fadeIn(delay: 300.ms);
   }
 
+  // NEW: Month and Year Selector
+  Widget _buildMonthYearSelector() {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Budget Period',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            // Month Selector
+            Expanded(
+              flex: 2,
+              child: GestureDetector(
+                onTap: () => _showMonthPicker(),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardTheme.color,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Iconsax.calendar_1,
+                          size: 20, color: AppTheme.primaryGreen),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Month',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            Text(
+                              months[_selectedMonth - 1],
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Iconsax.arrow_down_1, size: 16, color: Colors.grey),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Year Selector
+            Expanded(
+              child: GestureDetector(
+                onTap: () => _showYearPicker(),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardTheme.color,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Year',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '$_selectedYear',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Icon(Iconsax.arrow_down_1,
+                              size: 16, color: Colors.grey),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: _isCurrentMonth()
+                ? AppTheme.primaryGreen.withValues(alpha: 0.1)
+                : _isFutureMonth()
+                    ? Colors.blue.withValues(alpha: 0.1)
+                    : Colors.orange.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                _isCurrentMonth()
+                    ? Iconsax.tick_circle
+                    : _isFutureMonth()
+                        ? Iconsax.clock
+                        : Iconsax.info_circle,
+                size: 16,
+                color: _isCurrentMonth()
+                    ? AppTheme.primaryGreen
+                    : _isFutureMonth()
+                        ? Colors.blue
+                        : Colors.orange,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _isCurrentMonth()
+                      ? 'This is the current month budget'
+                      : _isFutureMonth()
+                          ? 'Future budget - will activate in ${months[_selectedMonth - 1]} $_selectedYear'
+                          : 'Past budget - for ${months[_selectedMonth - 1]} $_selectedYear',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: _isCurrentMonth()
+                        ? AppTheme.primaryGreen
+                        : _isFutureMonth()
+                            ? Colors.blue
+                            : Colors.orange,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ).animate().fadeIn(delay: 400.ms);
+  }
+
+  void _showMonthPicker() {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Select Month',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: List.generate(12, (index) {
+                final month = index + 1;
+                final isSelected = month == _selectedMonth;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() => _selectedMonth = month);
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: isSelected ? AppTheme.primaryGradient : null,
+                      color: isSelected ? null : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      months[index],
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? Colors.white : Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showYearPicker() {
+    final currentYear = DateTime.now().year;
+    final years = List.generate(10, (index) => currentYear + index);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Select Year',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: years.map((year) {
+                final isSelected = year == _selectedYear;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() => _selectedYear = year);
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: isSelected ? AppTheme.primaryGradient : null,
+                      color: isSelected ? null : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$year',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? Colors.white : Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _isCurrentMonth() {
+    final now = DateTime.now();
+    return _selectedMonth == now.month && _selectedYear == now.year;
+  }
+
+  bool _isFutureMonth() {
+    final now = DateTime.now();
+    final selected = DateTime(_selectedYear, _selectedMonth);
+    final current = DateTime(now.year, now.month);
+    return selected.isAfter(current);
+  }
+
   Widget _buildAlertThresholdSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,12 +684,26 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
           ),
         ),
       ],
-    ).animate().fadeIn(delay: 400.ms);
+    ).animate().fadeIn(delay: 500.ms);
   }
 
   Widget _buildInfoCard() {
     final amount = double.tryParse(_amountController.text) ?? 0;
     final alertAmount = amount * (_alertThreshold / 100);
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -402,13 +738,15 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
           const SizedBox(height: 12),
           _buildSummaryRow('Category', _selectedCategory),
           _buildSummaryRow(
+              'Period', '${months[_selectedMonth - 1]} $_selectedYear'),
+          _buildSummaryRow(
               'Monthly Limit', Helpers.formatCurrency(amount, 'USD')),
           _buildSummaryRow(
               'Alert When Spent', Helpers.formatCurrency(alertAmount, 'USD')),
           _buildSummaryRow('Alert Threshold', '$_alertThreshold%'),
         ],
       ),
-    ).animate().fadeIn(delay: 500.ms);
+    ).animate().fadeIn(delay: 600.ms);
   }
 
   Widget _buildSummaryRow(String label, String value) {
@@ -444,7 +782,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
       isLoading: _isLoading,
       gradient: const [AppTheme.primaryGreen, AppTheme.primaryTeal],
       width: double.infinity,
-    ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2, end: 0);
+    ).animate().fadeIn(delay: 700.ms).slideY(begin: 0.2, end: 0);
   }
 
   IconData _getCategoryIcon(String category) {
@@ -473,6 +811,8 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
         category: _selectedCategory,
         monthlyLimit: double.parse(_amountController.text),
         alertThreshold: _alertThreshold,
+        month: _selectedMonth, // NEW: Save selected month
+        year: _selectedYear, // NEW: Save selected year
       );
 
       final provider = Provider.of<BudgetProvider>(context, listen: false);
