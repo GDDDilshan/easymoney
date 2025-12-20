@@ -32,34 +32,37 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
   Future<void> _handleResetPassword() async {
     final email = _emailController.text.trim();
 
-    // Validation
+    // Clear previous messages
+    setState(() {
+      _errorMessage = null;
+      _successMessage = null;
+    });
+
+    // Validation - Empty check
     if (email.isEmpty) {
       setState(() {
         _errorMessage = 'Please enter your email address';
-        _successMessage = null;
       });
       return;
     }
 
+    // Validation - Email format check
     if (!Helpers.isValidEmail(email)) {
       setState(() {
         _errorMessage = 'Please enter a valid email address';
-        _successMessage = null;
       });
       return;
     }
 
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
-      _successMessage = null;
     });
 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.resetPassword(email);
 
-      // Only show success if no exception was thrown
+      // Success - Show success message
       setState(() {
         _successMessage =
             'Password reset email sent!\n\nCheck your inbox for instructions to reset your password.';
@@ -67,13 +70,13 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
         _isLoading = false;
       });
 
-      // Close dialog after 2 seconds
-      await Future.delayed(const Duration(seconds: 2));
+      // Auto-close dialog after 3 seconds on success
+      await Future.delayed(const Duration(seconds: 3));
       if (mounted) {
         Navigator.pop(context);
       }
     } catch (e) {
-      // Capture the error message
+      // Error - Extract error message
       String errorMsg = e.toString();
 
       // Remove 'Exception: ' prefix if present
@@ -161,7 +164,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
               ),
               const SizedBox(height: 24),
 
-              // Email Input Field
+              // Email Input Field with dynamic border color
               Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).brightness == Brightness.dark
@@ -171,19 +174,24 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                   border: Border.all(
                     color: _errorMessage != null
                         ? Colors.red.withValues(alpha: 0.5)
-                        : Colors.grey.shade300,
-                    width: _errorMessage != null ? 2 : 1,
+                        : _successMessage != null
+                            ? AppTheme.primaryGreen.withValues(alpha: 0.5)
+                            : Colors.grey.shade300,
+                    width: (_errorMessage != null || _successMessage != null)
+                        ? 2
+                        : 1,
                   ),
                 ),
                 child: TextField(
                   controller: _emailController,
-                  enabled: !_isLoading,
+                  enabled: !_isLoading && _successMessage == null,
                   keyboardType: TextInputType.emailAddress,
                   style: GoogleFonts.inter(
                     fontSize: 15,
                     color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                   onChanged: (value) {
+                    // Clear error when user starts typing
                     if (_errorMessage != null) {
                       setState(() => _errorMessage = null);
                     }
@@ -196,7 +204,9 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                     ),
                     prefixIcon: Icon(
                       Icons.email_outlined,
-                      color: AppTheme.primaryGreen,
+                      color: _successMessage != null
+                          ? AppTheme.primaryGreen
+                          : AppTheme.primaryGreen,
                       size: 20,
                     ),
                     border: InputBorder.none,
@@ -323,7 +333,9 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                         ],
                       ),
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _handleResetPassword,
+                        onPressed: _isLoading || _successMessage != null
+                            ? null
+                            : _handleResetPassword,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           elevation: 0,
@@ -345,7 +357,9 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                                 ),
                               )
                             : Text(
-                                'Send Link',
+                                _successMessage != null
+                                    ? 'Email Sent!'
+                                    : 'Send Link',
                                 style: GoogleFonts.inter(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,

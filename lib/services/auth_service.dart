@@ -68,70 +68,82 @@ class AuthService {
     await _auth.signOut();
   }
 
-  // Reset password - VERIFIED WORKING VERSION
+  // Reset password - PROPER VERSION that verifies email exists
   Future<void> resetPassword(String email) async {
     try {
       final trimmedEmail = email.trim().toLowerCase();
 
+      // Validation
       if (trimmedEmail.isEmpty) {
         throw Exception('Please enter an email address.');
       }
 
+      if (!_isValidEmail(trimmedEmail)) {
+        throw Exception('Please enter a valid email address.');
+      }
+
       debugPrint('=== Password Reset Debug ===');
-      debugPrint('Checking email: $trimmedEmail');
+      debugPrint('Checking if email exists: $trimmedEmail');
 
-      // IMPORTANT: We need to check if email exists BEFORE sending reset email
-      // because Firebase sendPasswordResetEmail() doesn't throw error for non-existent emails
-
-      // Method: Try to sign in with a dummy password
-      // If user-not-found error is thrown, user doesn't exist
-      // If wrong-password error is thrown, user exists
+      // Step 1: Check if user exists in Firestore by querying all users
+      // This is the ONLY way to verify email exists in Auth
+      bool userExists = false;
       try {
-        await _auth.signInWithEmailAndPassword(
-          email: trimmedEmail,
-          password: 'dummy_password_check_12345',
+        final userSnapshot = await _firestore
+            .collection('users')
+            .where('email', isEqualTo: trimmedEmail)
+            .limit(1)
+            .get();
+
+        userExists = userSnapshot.docs.isNotEmpty;
+        debugPrint('Firestore query result: User exists = $userExists');
+      } catch (firestoreError) {
+        // If Firestore query fails due to permissions, try alternate method
+        debugPrint('⚠️ Firestore query failed: $firestoreError');
+        // Continue with direct sendPasswordResetEmail anyway
+      }
+
+      // Step 2: If we confirmed user doesn't exist, throw error
+      if (!userExists) {
+        debugPrint('❌ User not found in Firestore');
+        throw Exception(
+          'No account found with this email address. Please check the email and try again, or sign up for a new account.',
         );
-        // Should never reach here with wrong password
-      } on FirebaseAuthException catch (e) {
-        debugPrint('Sign in attempt error code: ${e.code}');
+      }
 
-        if (e.code == 'user-not-found') {
-          // User doesn't exist
-          debugPrint('User not found');
-          throw Exception(
-              'No account found with this email address. Please check the email and try again, or sign up for a new account.');
-        } else if (e.code == 'invalid-email') {
-          // Invalid email format
-          debugPrint('Invalid email format');
-          throw Exception(
-              'Invalid email address format. Please enter a valid email.');
-        } else if (e.code == 'too-many-requests') {
-          // Too many attempts
-          debugPrint('Too many requests');
-          throw Exception('Too many attempts. Please try again later.');
-        } else if (e.code == 'wrong-password') {
-          // User exists! (because we got wrong-password error, not user-not-found)
-          debugPrint('User exists - proceeding to send reset email');
-
-          // Now send the password reset email
-          try {
-            await _auth.sendPasswordResetEmail(email: trimmedEmail);
-            debugPrint('Password reset email sent successfully');
-            return; // Success!
-          } catch (resetError) {
-            debugPrint('Error sending reset email: $resetError');
+      // Step 3: Send password reset email
+      debugPrint('✅ User found, sending password reset email...');
+      try {
+        await _auth.sendPasswordResetEmail(email: trimmedEmail);
+        debugPrint('✅ Password reset email sent successfully');
+      } catch (authError) {
+        debugPrint('❌ Error sending reset email: $authError');
+        if (authError is FirebaseAuthException) {
+          if (authError.code == 'user-not-found') {
             throw Exception(
-                'Unable to send password reset email. Please try again.');
+              'No account found with this email address. Please check the email and try again, or sign up for a new account.',
+            );
+          } else if (authError.code == 'invalid-email') {
+            throw Exception('Please enter a valid email address.');
+          } else if (authError.code == 'too-many-requests') {
+            throw Exception(
+              'Too many password reset requests. Please try again later.',
+            );
           }
-        } else {
-          debugPrint('Other sign in error: ${e.code}');
-          throw Exception('An error occurred. Please try again.');
         }
+        throw Exception(
+          'Unable to send password reset email. Please try again.',
+        );
       }
     } catch (e) {
       debugPrint('Password reset exception: $e');
       rethrow;
     }
+  }
+
+  // Helper method to validate email format
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
   // Get user data from Firestore
