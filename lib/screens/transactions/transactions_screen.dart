@@ -748,7 +748,25 @@ class _TransactionsScreenState extends State<TransactionsScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const SizedBox.shrink(),
+      builder: (context) => _FilterSheet(
+        selectedCategory: _selectedCategory,
+        startDate: _startDate,
+        endDate: _endDate,
+        onApply: (category, start, end) {
+          setState(() {
+            _selectedCategory = category;
+            _startDate = start;
+            _endDate = end;
+          });
+        },
+        onReset: () {
+          setState(() {
+            _selectedCategory = 'all';
+            _startDate = null;
+            _endDate = null;
+          });
+        },
+      ),
     );
   }
 

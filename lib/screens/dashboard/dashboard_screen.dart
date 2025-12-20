@@ -1,3 +1,4 @@
+// lib/screens/dashboard/dashboard_screen.dart - FIXED VERSION
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -251,7 +252,8 @@ class DashboardHome extends StatelessWidget {
   Widget _buildStatsCards(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context);
-    final currency = authProvider.selectedCurrency;
+    final currency =
+        authProvider.selectedCurrency; // FIXED: Get user's selected currency
     final goalProvider = Provider.of<GoalProvider>(context);
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
@@ -364,7 +366,7 @@ class DashboardHome extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '${isNegative ? '-' : ''}${Helpers.formatCurrency(balance.abs(), currency)}',
+                      '${isNegative ? '-' : ''}${Helpers.formatCurrency(balance.abs(), currency)}', // FIXED: Use selected currency
                       style: GoogleFonts.poppins(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
@@ -398,7 +400,8 @@ class DashboardHome extends StatelessWidget {
                     Expanded(
                       child: _buildMiniStat(
                         'Income',
-                        Helpers.formatCurrency(monthlyIncome, currency),
+                        Helpers.formatCurrency(monthlyIncome,
+                            currency), // FIXED: Use selected currency
                         Iconsax.arrow_down_1,
                         Colors.white,
                       ),
@@ -407,7 +410,8 @@ class DashboardHome extends StatelessWidget {
                     Expanded(
                       child: _buildMiniStat(
                         'Expenses',
-                        Helpers.formatCurrency(monthlyExpenses, currency),
+                        Helpers.formatCurrency(monthlyExpenses,
+                            currency), // FIXED: Use selected currency
                         Iconsax.arrow_up_3,
                         Colors.white,
                       ),
@@ -747,6 +751,9 @@ class DashboardHome extends StatelessWidget {
 
   Widget _buildGoalsSection(BuildContext context) {
     final goalProvider = Provider.of<GoalProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currency =
+        authProvider.selectedCurrency; // FIXED: Get user's selected currency
     final activeGoals = goalProvider.activeGoals.toList();
 
     if (activeGoals.isEmpty) {
@@ -766,13 +773,16 @@ class DashboardHome extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          ...activeGoals.map((goal) => _buildGoalItem(goal)).toList(),
+          ...activeGoals
+              .map((goal) => _buildGoalItem(goal, currency))
+              .toList(), // FIXED: Pass currency
         ],
       ),
     ).animate().fadeIn(delay: 700.ms).slideY(begin: 0.2, end: 0);
   }
 
-  Widget _buildGoalItem(goal) {
+  Widget _buildGoalItem(goal, String currency) {
+    // FIXED: Accept currency parameter
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -819,7 +829,7 @@ class DashboardHome extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${Helpers.formatCurrency(goal.currentAmount, null)} / ${Helpers.formatCurrency(goal.targetAmount, null)}',
+                      '${Helpers.formatCurrency(goal.currentAmount, currency)} / ${Helpers.formatCurrency(goal.targetAmount, currency)}', // FIXED: Use selected currency
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: Colors.grey,
@@ -858,7 +868,8 @@ class DashboardHome extends StatelessWidget {
   Widget _buildWeeklyTransactions(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context);
-    final currency = authProvider.selectedCurrency;
+    final currency =
+        authProvider.selectedCurrency; // FIXED: Get user's selected currency
 
     final now = DateTime.now();
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
@@ -888,7 +899,8 @@ class DashboardHome extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ...weeklyTransactions
-              .map((t) => _buildTransactionItem(t, currency))
+              .map((t) =>
+                  _buildTransactionItem(t, currency)) // FIXED: Pass currency
               .toList(),
         ],
       ),
@@ -896,6 +908,7 @@ class DashboardHome extends StatelessWidget {
   }
 
   Widget _buildTransactionItem(transaction, String currency) {
+    // FIXED: Accept currency parameter
     final isIncome = transaction.type == 'income';
     final now = DateTime.now();
     final currentYear = now.year;
@@ -956,7 +969,7 @@ class DashboardHome extends StatelessWidget {
             ),
           ),
           Text(
-            '${isIncome ? '+' : '-'}${Helpers.formatCurrency(transaction.amount, currency)}',
+            '${isIncome ? '+' : '-'}${Helpers.formatCurrency(transaction.amount, currency)}', // FIXED: Use selected currency
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,
