@@ -18,14 +18,16 @@ import '../goals/goals_screen.dart';
 import '../settings/settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final int initialIndex; // NEW: Added initial index parameter
+
+  const DashboardScreen({super.key, this.initialIndex = 0});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _selectedIndex = 0;
+  late int _selectedIndex; // Changed to late
 
   final List<Widget> _screens = [
     const DashboardHome(),
@@ -34,6 +36,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     const GoalsScreen(),
     const SettingsScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex; // Initialize with passed index
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -158,9 +166,10 @@ class DashboardHome extends StatelessWidget {
                     const SizedBox(height: 24),
                     _buildWeeklyChart(context),
                     const SizedBox(height: 24),
-                    _buildGoalsSection(context),
+                    _buildGoalsSection(context), // Still shows 3 goals
                     const SizedBox(height: 24),
-                    _buildRecentTransactions(context),
+                    _buildWeeklyTransactions(
+                        context), // Still shows 5 weekly transactions
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -242,6 +251,7 @@ class DashboardHome extends StatelessWidget {
 
   Widget _buildStatsCards(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
+    final goalProvider = Provider.of<GoalProvider>(context);
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
     final endOfMonth = DateTime(now.year, now.month + 1, 0);
@@ -252,18 +262,22 @@ class DashboardHome extends StatelessWidget {
         transactionProvider.getTotalExpenses(startOfMonth, endOfMonth);
     final balance = monthlyIncome - monthlyExpenses;
 
-    // Check if balance is negative or positive
+    // Get current month transactions count
+    final monthlyTransactions = transactionProvider.transactions
+        .where((t) => t.date.year == now.year && t.date.month == now.month)
+        .length;
+
+    // Get active (incomplete) goals count
+    final activeGoalsCount = goalProvider.activeGoals.length;
+
     final isNegative = balance < 0;
     final cardGradient = isNegative
         ? const LinearGradient(
-            colors: [
-              Color(0xFFEF4444),
-              Color(0xFFF97316)
-            ], // Red gradient for negative
+            colors: [Color(0xFFEF4444), Color(0xFFF97316)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           )
-        : AppTheme.primaryGradient; // Green gradient for positive
+        : AppTheme.primaryGradient;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -405,25 +419,144 @@ class DashboardHome extends StatelessWidget {
             ),
           ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
           const SizedBox(height: 16),
+
+          // NEW: Updated Stats Cards with Premium Design
           Row(
             children: [
+              // Monthly Transactions Card
               Expanded(
-                child: StatCard(
-                  title: 'Transactions',
-                  value:
-                      '${Provider.of<TransactionProvider>(context).transactions.length}',
-                  icon: Iconsax.document_text,
-                  gradient: const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardTheme.color,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Transactions',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Iconsax.document_text,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '$monthlyTransactions',
+                        style: GoogleFonts.poppins(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF6366F1),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'This Month',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
+
+              // Active Goals Card
               Expanded(
-                child: StatCard(
-                  title: 'Categories',
-                  value:
-                      '${Provider.of<TransactionProvider>(context).getCategorySpending().length}',
-                  icon: Iconsax.category,
-                  gradient: const [Color(0xFFF59E0B), Color(0xFFF97316)],
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardTheme.color,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Active Goals',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFF59E0B), Color(0xFFF97316)],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Iconsax.flag,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '$activeGoalsCount',
+                        style: GoogleFonts.poppins(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFF59E0B),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'In Progress',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -435,7 +568,6 @@ class DashboardHome extends StatelessWidget {
 
   Widget _buildMiniStat(
       String label, String value, IconData icon, Color color) {
-    // Determine colors based on label
     final isIncome = label == 'Income';
     final cardColor =
         isIncome ? const Color(0xFF10B981) : const Color(0xFFEF4444);
@@ -619,9 +751,11 @@ class DashboardHome extends StatelessWidget {
     );
   }
 
+  // Goals Section - Shows ALL active goals
   Widget _buildGoalsSection(BuildContext context) {
     final goalProvider = Provider.of<GoalProvider>(context);
-    final activeGoals = goalProvider.activeGoals.take(3).toList();
+    final activeGoals =
+        goalProvider.activeGoals.toList(); // CHANGED: Show ALL active goals
 
     if (activeGoals.isEmpty) {
       return const SizedBox.shrink();
@@ -632,27 +766,12 @@ class DashboardHome extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Savings Goals',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              TextButton(
-                onPressed: () {},
-                child: Text(
-                  'See All',
-                  style: GoogleFonts.inter(
-                    color: AppTheme.primaryGreen,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            'Savings Goals',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 12),
           ...activeGoals.map((goal) => _buildGoalItem(goal)).toList(),
@@ -744,12 +863,21 @@ class DashboardHome extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentTransactions(BuildContext context) {
+  // Weekly Transactions - Shows ALL weekly transactions
+  Widget _buildWeeklyTransactions(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
-    final recentTransactions =
-        transactionProvider.transactions.take(5).toList();
 
-    if (recentTransactions.isEmpty) {
+    final now = DateTime.now();
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+    final weekEnd = weekStart.add(const Duration(days: 7));
+
+    final weeklyTransactions = transactionProvider.transactions
+        .where((t) =>
+            t.date.isAfter(weekStart.subtract(const Duration(days: 1))) &&
+            t.date.isBefore(weekEnd))
+        .toList(); // CHANGED: Show ALL weekly transactions (removed .take(5))
+
+    if (weeklyTransactions.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -758,30 +886,15 @@ class DashboardHome extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Recent Transactions',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              TextButton(
-                onPressed: () {},
-                child: Text(
-                  'See All',
-                  style: GoogleFonts.inter(
-                    color: AppTheme.primaryGreen,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            'Weekly Transactions',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 12),
-          ...recentTransactions.map((t) => _buildTransactionItem(t)).toList(),
+          ...weeklyTransactions.map((t) => _buildTransactionItem(t)).toList(),
         ],
       ),
     ).animate().fadeIn(delay: 800.ms).slideY(begin: 0.2, end: 0);
@@ -793,7 +906,6 @@ class DashboardHome extends StatelessWidget {
     final currentYear = now.year;
     final transactionYear = transaction.date.year;
 
-    // Smart date formatting - show year only for old transactions
     final dateFormat = transactionYear == currentYear ? 'MMM d' : 'MMM d, yyyy';
 
     return Container(
