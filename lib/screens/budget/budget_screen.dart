@@ -141,16 +141,25 @@ class _BudgetScreenState extends State<BudgetScreen> {
     final remaining = totalBudget - totalSpent;
     final percentUsed =
         totalBudget > 0 ? (totalSpent / totalBudget * 100) : 0.0;
+    final isOverBudget = totalSpent > totalBudget;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
+        gradient: isOverBudget
+            ? const LinearGradient(
+                colors: [Color(0xFFEF4444), Color(0xFFF97316)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : AppTheme.primaryGradient,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+            color: isOverBudget
+                ? Colors.red.withValues(alpha: 0.3)
+                : AppTheme.primaryGreen.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -200,10 +209,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
-              value: percentUsed / 100,
+              value: (percentUsed / 100).clamp(0, 1),
               backgroundColor: Colors.white.withValues(alpha: 0.3),
               valueColor: AlwaysStoppedAnimation<Color>(
-                percentUsed > 100 ? Colors.red : Colors.white,
+                isOverBudget ? Colors.white : Colors.white,
               ),
               minHeight: 12,
             ),
@@ -212,17 +221,32 @@ class _BudgetScreenState extends State<BudgetScreen> {
           Row(
             children: [
               Expanded(
-                child: _buildStatItem('Spent', totalSpent, Iconsax.arrow_up_3),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatItem('Remaining', remaining, Iconsax.wallet),
+                child: _buildStatItem(
+                  'Spent',
+                  totalSpent,
+                  Iconsax.arrow_up_3,
+                  isOverBudget: isOverBudget,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatItem(
-                    'Used', percentUsed.toDouble(), Iconsax.percentage_circle,
-                    isPercent: true),
+                  isOverBudget ? 'Over Budget' : 'Remaining',
+                  remaining.abs(),
+                  isOverBudget ? Iconsax.danger : Iconsax.wallet,
+                  isOverBudget: isOverBudget,
+                  showNegative: isOverBudget,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatItem(
+                  'Used',
+                  percentUsed.toDouble(),
+                  Iconsax.percentage_circle,
+                  isOverBudget: isOverBudget,
+                  isPercent: true,
+                ),
               ),
             ],
           ),
@@ -231,8 +255,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
     ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0);
   }
 
-  Widget _buildStatItem(String label, double value, IconData icon,
-      {bool isPercent = false}) {
+  Widget _buildStatItem(
+    String label,
+    double value,
+    IconData icon, {
+    bool isPercent = false,
+    bool isOverBudget = false,
+    bool showNegative = false,
+  }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -249,7 +279,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
             child: Text(
               isPercent
                   ? '${value.toStringAsFixed(0)}%'
-                  : Helpers.formatCurrency(value, 'USD'),
+                  : '${showNegative ? '-' : ''}${Helpers.formatCurrency(value, 'USD')}',
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -298,7 +328,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   Widget _buildBudgetCard(BudgetModel budget, double spent, int index) {
-    final progress = (spent / budget.monthlyLimit * 100).clamp(0, 100);
+    final percentageUsed = (spent / budget.monthlyLimit * 100);
+    final progress =
+        percentageUsed.clamp(0, 100); // For progress bar (clamped to 100%)
     final remaining = budget.monthlyLimit - spent;
     final isOverBudget = spent > budget.monthlyLimit;
     final isNearLimit = progress >= budget.alertThreshold;
@@ -471,7 +503,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Remaining',
+                        isOverBudget ? 'Over Budget' : 'Remaining',
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: Colors.grey,
@@ -480,7 +512,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          Helpers.formatCurrency(remaining.abs(), 'USD'),
+                          '${isOverBudget ? '-' : ''}${Helpers.formatCurrency(remaining.abs(), 'USD')}',
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -516,7 +548,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${progress.toStringAsFixed(1)}% used',
+                  '${percentageUsed.toStringAsFixed(1)}% used',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
