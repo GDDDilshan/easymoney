@@ -520,6 +520,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
 
   void _showYearPicker() {
     final currentYear = DateTime.now().year;
+    // Show current year + 9 future years (total 10 years)
     final years = List.generate(10, (index) => currentYear + index);
 
     showModalBottomSheet(
@@ -537,6 +538,14 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Choose from $currentYear to ${currentYear + 9}',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: Colors.grey,
               ),
             ),
             const SizedBox(height: 20),
