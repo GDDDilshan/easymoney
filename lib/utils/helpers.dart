@@ -3,10 +3,22 @@ import 'package:intl/intl.dart';
 import 'constants.dart';
 
 class Helpers {
-  // Format currency
-  static String formatCurrency(double amount, String currency) {
-    final symbol = AppConstants.currencies[currency] ?? '\$';
+  // Format currency with dynamic symbol based on user preference
+  static String formatCurrency(double amount, String? currency) {
+    // Use provided currency or fallback to default
+    final currencyCode = currency ?? AppConstants.defaultCurrency;
+    final symbol = AppConstants.currencies[currencyCode] ?? '\$';
     return '$symbol${amount.toStringAsFixed(2)}';
+  }
+
+  // Format currency with custom symbol
+  static String formatCurrencyWithSymbol(double amount, String symbol) {
+    return '$symbol${amount.toStringAsFixed(2)}';
+  }
+
+  // Get currency symbol by code
+  static String getCurrencySymbol(String currencyCode) {
+    return AppConstants.currencies[currencyCode] ?? '\$';
   }
 
   // Format date

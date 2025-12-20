@@ -18,7 +18,7 @@ import '../goals/goals_screen.dart';
 import '../settings/settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  final int initialIndex; // NEW: Added initial index parameter
+  final int initialIndex;
 
   const DashboardScreen({super.key, this.initialIndex = 0});
 
@@ -27,7 +27,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late int _selectedIndex; // Changed to late
+  late int _selectedIndex;
 
   final List<Widget> _screens = [
     const DashboardHome(),
@@ -40,7 +40,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedIndex = widget.initialIndex; // Initialize with passed index
+    _selectedIndex = widget.initialIndex;
   }
 
   @override
@@ -166,10 +166,9 @@ class DashboardHome extends StatelessWidget {
                     const SizedBox(height: 24),
                     _buildWeeklyChart(context),
                     const SizedBox(height: 24),
-                    _buildGoalsSection(context), // Still shows 3 goals
+                    _buildGoalsSection(context),
                     const SizedBox(height: 24),
-                    _buildWeeklyTransactions(
-                        context), // Still shows 5 weekly transactions
+                    _buildWeeklyTransactions(context),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -251,6 +250,8 @@ class DashboardHome extends StatelessWidget {
 
   Widget _buildStatsCards(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currency = authProvider.selectedCurrency;
     final goalProvider = Provider.of<GoalProvider>(context);
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
@@ -262,12 +263,10 @@ class DashboardHome extends StatelessWidget {
         transactionProvider.getTotalExpenses(startOfMonth, endOfMonth);
     final balance = monthlyIncome - monthlyExpenses;
 
-    // Get current month transactions count
     final monthlyTransactions = transactionProvider.transactions
         .where((t) => t.date.year == now.year && t.date.month == now.month)
         .length;
 
-    // Get active (incomplete) goals count
     final activeGoalsCount = goalProvider.activeGoals.length;
 
     final isNegative = balance < 0;
@@ -365,7 +364,7 @@ class DashboardHome extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '${isNegative ? '-' : ''}${Helpers.formatCurrency(balance.abs(), 'USD')}',
+                      '${isNegative ? '-' : ''}${Helpers.formatCurrency(balance.abs(), currency)}',
                       style: GoogleFonts.poppins(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
@@ -399,7 +398,7 @@ class DashboardHome extends StatelessWidget {
                     Expanded(
                       child: _buildMiniStat(
                         'Income',
-                        Helpers.formatCurrency(monthlyIncome, 'USD'),
+                        Helpers.formatCurrency(monthlyIncome, currency),
                         Iconsax.arrow_down_1,
                         Colors.white,
                       ),
@@ -408,7 +407,7 @@ class DashboardHome extends StatelessWidget {
                     Expanded(
                       child: _buildMiniStat(
                         'Expenses',
-                        Helpers.formatCurrency(monthlyExpenses, 'USD'),
+                        Helpers.formatCurrency(monthlyExpenses, currency),
                         Iconsax.arrow_up_3,
                         Colors.white,
                       ),
@@ -419,11 +418,8 @@ class DashboardHome extends StatelessWidget {
             ),
           ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
           const SizedBox(height: 16),
-
-          // NEW: Updated Stats Cards with Premium Design
           Row(
             children: [
-              // Monthly Transactions Card
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(20),
@@ -491,8 +487,6 @@ class DashboardHome extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-
-              // Active Goals Card
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(20),
@@ -751,11 +745,9 @@ class DashboardHome extends StatelessWidget {
     );
   }
 
-  // Goals Section - Shows ALL active goals
   Widget _buildGoalsSection(BuildContext context) {
     final goalProvider = Provider.of<GoalProvider>(context);
-    final activeGoals =
-        goalProvider.activeGoals.toList(); // CHANGED: Show ALL active goals
+    final activeGoals = goalProvider.activeGoals.toList();
 
     if (activeGoals.isEmpty) {
       return const SizedBox.shrink();
@@ -827,7 +819,7 @@ class DashboardHome extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${Helpers.formatCurrency(goal.currentAmount, 'USD')} / ${Helpers.formatCurrency(goal.targetAmount, 'USD')}',
+                      '${Helpers.formatCurrency(goal.currentAmount, null)} / ${Helpers.formatCurrency(goal.targetAmount, null)}',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: Colors.grey,
@@ -863,9 +855,10 @@ class DashboardHome extends StatelessWidget {
     );
   }
 
-  // Weekly Transactions - Shows ALL weekly transactions
   Widget _buildWeeklyTransactions(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currency = authProvider.selectedCurrency;
 
     final now = DateTime.now();
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
@@ -875,7 +868,7 @@ class DashboardHome extends StatelessWidget {
         .where((t) =>
             t.date.isAfter(weekStart.subtract(const Duration(days: 1))) &&
             t.date.isBefore(weekEnd))
-        .toList(); // CHANGED: Show ALL weekly transactions (removed .take(5))
+        .toList();
 
     if (weeklyTransactions.isEmpty) {
       return const SizedBox.shrink();
@@ -894,13 +887,15 @@ class DashboardHome extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          ...weeklyTransactions.map((t) => _buildTransactionItem(t)).toList(),
+          ...weeklyTransactions
+              .map((t) => _buildTransactionItem(t, currency))
+              .toList(),
         ],
       ),
     ).animate().fadeIn(delay: 800.ms).slideY(begin: 0.2, end: 0);
   }
 
-  Widget _buildTransactionItem(transaction) {
+  Widget _buildTransactionItem(transaction, String currency) {
     final isIncome = transaction.type == 'income';
     final now = DateTime.now();
     final currentYear = now.year;
@@ -961,7 +956,7 @@ class DashboardHome extends StatelessWidget {
             ),
           ),
           Text(
-            '${isIncome ? '+' : '-'}${Helpers.formatCurrency(transaction.amount, transaction.currency)}',
+            '${isIncome ? '+' : '-'}${Helpers.formatCurrency(transaction.amount, currency)}',
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,

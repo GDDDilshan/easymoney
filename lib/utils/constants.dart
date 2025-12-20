@@ -35,12 +35,38 @@ class AppConstants {
     'annually',
   ];
 
-  // Currencies
+  // CORRECTED: Currencies with Symbols - All symbols verified and corrected
   static const Map<String, String> currencies = {
-    'USD': '\$',
-    'EUR': '€',
-    'GBP': '£',
-    'CNY': '¥',
+    'USD': '\$', // US Dollar
+    'EUR': '€', // Euro
+    'GBP': '£', // British Pound
+    'JPY': '¥', // Japanese Yen (CORRECTED - different from Yuan)
+    'CHF': 'Fr', // Swiss Franc
+    'CAD': 'C\$', // Canadian Dollar
+    'AUD': 'A\$', // Australian Dollar
+    'NZD': 'NZ\$', // New Zealand Dollar
+    'CNY': '¥', // Chinese Yuan (same symbol as JPY but different context)
+    'INR': '₹', // Indian Rupee
+    'RUB': '₽', // Russian Ruble
+    'MXN': '\$', // Mexican Peso (uses $ like USD)
+    'BRL': 'R\$', // Brazilian Real
+    'ZAR': 'R', // South African Rand
+    'SGD': 'S\$', // Singapore Dollar
+    'HKD': 'HK\$', // Hong Kong Dollar
+    'SEK': 'kr', // Swedish Krona
+    'NOK': 'kr', // Norwegian Krone
+    'DKK': 'kr', // Danish Krone
+    'NTD': 'NT\$', // New Taiwan Dollar
+    'KRW': '₩', // South Korean Won
+    'THB': '฿', // Thai Baht
+    'MYR': 'RM', // Malaysian Ringgit
+    'PHP': '₱', // Philippine Peso
+    'VND': '₫', // Vietnamese Dong
+    'PKR': '₨', // Pakistani Rupee
+    'IDR': 'Rp', // Indonesian Rupiah
+    'TRY': '₺', // Turkish Lira
+    'AED': 'د.إ', // UAE Dirham
+    'SAR': 'ر.س', // Saudi Riyal
   };
 
   // Category Colors
@@ -70,4 +96,7 @@ class AppConstants {
     Color(0xFFEF4444),
     Color(0xFFEC4899),
   ];
+
+  // Default Currency
+  static const String defaultCurrency = 'USD';
 }

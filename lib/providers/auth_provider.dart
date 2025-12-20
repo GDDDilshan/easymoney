@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
+import '../utils/constants.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   UserModel? _userModel;
   bool _isLoading = false;
+  String _selectedCurrency = AppConstants.defaultCurrency;
 
   UserModel? get userModel => _userModel;
   bool get isLoading => _isLoading;
   User? get currentUser => _authService.currentUser;
   bool get isAuthenticated => _authService.currentUser != null;
+  String get selectedCurrency => _selectedCurrency;
 
   AuthProvider() {
     _initUser();
@@ -27,6 +30,9 @@ class AuthProvider with ChangeNotifier {
   Future<void> loadUserData(String uid) async {
     try {
       _userModel = await _authService.getUserData(uid);
+      if (_userModel != null) {
+        _selectedCurrency = _userModel!.currencyPreference;
+      }
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading user data: $e');
@@ -82,10 +88,10 @@ class AuthProvider with ChangeNotifier {
   Future<void> signOut() async {
     await _authService.signOut();
     _userModel = null;
+    _selectedCurrency = AppConstants.defaultCurrency;
     notifyListeners();
   }
 
-  // ============ PASSWORD RESET ============
   Future<void> resetPassword(String email) async {
     _isLoading = true;
     notifyListeners();
@@ -97,12 +103,10 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       _isLoading = false;
       notifyListeners();
-      // Re-throw to let the caller handle it
       rethrow;
     }
   }
 
-  // ============ CHANGE PASSWORD ============
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -125,10 +129,26 @@ class AuthProvider with ChangeNotifier {
     try {
       await _authService.updateUserData(updatedUser);
       _userModel = updatedUser;
+      _selectedCurrency = updatedUser.currencyPreference;
       notifyListeners();
     } catch (e) {
       debugPrint('Error updating user profile: $e');
       rethrow;
     }
+  }
+
+  // Update currency preference
+  Future<void> updateCurrency(String newCurrency) async {
+    if (_userModel != null) {
+      final updatedUser = _userModel!.copyWith(
+        currencyPreference: newCurrency,
+      );
+      await updateUserProfile(updatedUser);
+    }
+  }
+
+  // Get current selected currency
+  String getCurrency() {
+    return _selectedCurrency;
   }
 }

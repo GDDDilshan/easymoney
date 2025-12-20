@@ -19,25 +19,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String _selectedCurrency = 'USD';
-  bool _notificationsEnabled = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSettings();
-  }
-
-  void _loadSettings() {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.userModel != null) {
-      setState(() {
-        _selectedCurrency = authProvider.userModel!.currencyPreference;
-        _notificationsEnabled = authProvider.userModel!.notificationsEnabled;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -71,9 +52,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   [
                     _buildSettingItem(
                       'Currency',
-                      'Change your preferred currency',
+                      'Current: ${authProvider.selectedCurrency}',
                       Iconsax.dollar_circle,
-                      trailing: _buildCurrencySelector(),
+                      trailing: _buildCurrencySelector(authProvider),
                     ),
                     _buildSettingItem(
                       'Theme',
@@ -95,7 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       'Change Password',
                       'Update your password',
                       Iconsax.lock,
-                      onTap: () => _showChangePasswordDialog(),
+                      onTap: () => _showChangePasswordDialog(authProvider),
                     ),
                   ],
                 ),
@@ -108,10 +89,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       'Receive budget and goal alerts',
                       Iconsax.notification,
                       trailing: Switch(
-                        value: _notificationsEnabled,
+                        value: authProvider.userModel?.notificationsEnabled ??
+                            true,
                         onChanged: (value) {
-                          setState(() => _notificationsEnabled = value);
-                          _saveSettings(authProvider);
+                          if (authProvider.userModel != null) {
+                            final updatedUser =
+                                authProvider.userModel!.copyWith(
+                              notificationsEnabled: value,
+                            );
+                            authProvider.updateUserProfile(updatedUser);
+                          }
                         },
                         activeColor: AppTheme.primaryGreen,
                       ),
@@ -121,8 +108,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       'Get monthly reports via email',
                       Iconsax.sms,
                       trailing: Switch(
-                        value: true,
-                        onChanged: (value) {},
+                        value: authProvider.userModel?.emailAlerts ?? true,
+                        onChanged: (value) {
+                          if (authProvider.userModel != null) {
+                            final updatedUser =
+                                authProvider.userModel!.copyWith(
+                              emailAlerts: value,
+                            );
+                            authProvider.updateUserProfile(updatedUser);
+                          }
+                        },
                         activeColor: AppTheme.primaryGreen,
                       ),
                     ),
@@ -379,25 +374,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildCurrencySelector() {
-    return DropdownButton<String>(
-      value: _selectedCurrency,
-      underline: const SizedBox(),
-      items: AppConstants.currencies.keys.map((currency) {
-        return DropdownMenuItem(
-          value: currency,
-          child: Text(
-            currency,
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-          ),
-        );
-      }).toList(),
-      onChanged: (value) {
-        if (value != null) {
-          setState(() => _selectedCurrency = value);
-          _saveSettings(Provider.of<AuthProvider>(context, listen: false));
-        }
-      },
+  // UPDATED: Shows currency with symbol in dropdown
+  Widget _buildCurrencySelector(AuthProvider authProvider) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white.withValues(alpha: 0.1)
+            : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButton<String>(
+        value: authProvider.selectedCurrency,
+        underline: const SizedBox(),
+        isDense: true,
+        items: AppConstants.currencies.keys.map((currency) {
+          final symbol = AppConstants.currencies[currency]!;
+          return DropdownMenuItem(
+            value: currency,
+            child: Text(
+              '$currency ($symbol)',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryGreen,
+              ),
+            ),
+          );
+        }).toList(),
+        onChanged: (value) {
+          if (value != null) {
+            authProvider.updateCurrency(value);
+            Helpers.showSnackBar(
+              context,
+              'Currency changed to $value',
+            );
+          }
+        },
+      ),
     );
   }
 
@@ -457,7 +471,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showChangePasswordDialog() {
+  void _showChangePasswordDialog(AuthProvider authProvider) {
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
@@ -588,8 +602,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 }
 
                 try {
-                  final authProvider =
-                      Provider.of<AuthProvider>(context, listen: false);
                   await authProvider.changePassword(
                     currentPassword: currentPasswordController.text,
                     newPassword: newPasswordController.text,
@@ -618,16 +630,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
-  }
-
-  void _saveSettings(AuthProvider authProvider) async {
-    if (authProvider.userModel != null) {
-      final updatedUser = authProvider.userModel!.copyWith(
-        currencyPreference: _selectedCurrency,
-        notificationsEnabled: _notificationsEnabled,
-      );
-      await authProvider.updateUserProfile(updatedUser);
-    }
   }
 
   void _handleSignOut(AuthProvider authProvider) async {

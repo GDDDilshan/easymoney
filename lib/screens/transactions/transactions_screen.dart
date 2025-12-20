@@ -45,6 +45,9 @@ class _TransactionsScreenState extends State<TransactionsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currency = authProvider.selectedCurrency;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -64,11 +67,11 @@ class _TransactionsScreenState extends State<TransactionsScreen>
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(),
+              _buildHeader(currency),
               _buildSearchBar(),
               _buildFilters(),
               _buildTabBar(),
-              Expanded(child: _buildTransactionList()),
+              Expanded(child: _buildTransactionList(currency)),
             ],
           ),
         ),
@@ -88,7 +91,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(String currency) {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -116,13 +119,13 @@ class _TransactionsScreenState extends State<TransactionsScreen>
               ],
             ),
           ),
-          _buildSummaryCard(),
+          _buildSummaryCard(currency),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryCard() {
+  Widget _buildSummaryCard(String currency) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
@@ -191,7 +194,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
-              '${isNegative ? '-' : ''}${Helpers.formatCurrency(balance.abs(), 'USD')}',
+              '${isNegative ? '-' : ''}${Helpers.formatCurrency(balance.abs(), currency)}',
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -412,7 +415,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
     ).animate().fadeIn(delay: 600.ms);
   }
 
-  Widget _buildTransactionList() {
+  Widget _buildTransactionList(String currency) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
 
     if (transactionProvider.isLoading) {
@@ -437,7 +440,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
       itemCount: transactions.length,
       itemBuilder: (context, index) {
         final transaction = transactions[index];
-        return _buildTransactionItem(transaction, index)
+        return _buildTransactionItem(transaction, index, currency)
             .animate()
             .fadeIn(delay: (100 * index).ms)
             .slideX(begin: -0.2, end: 0);
@@ -445,8 +448,8 @@ class _TransactionsScreenState extends State<TransactionsScreen>
     );
   }
 
-  // NEW: Updated transaction item with tags and notes display
-  Widget _buildTransactionItem(TransactionModel transaction, int index) {
+  Widget _buildTransactionItem(
+      TransactionModel transaction, int index, String currency) {
     final isIncome = transaction.type == 'income';
 
     return Dismissible(
@@ -554,7 +557,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '${isIncome ? '+' : '-'}${Helpers.formatCurrency(transaction.amount, transaction.currency)}',
+                      '${isIncome ? '+' : '-'}${Helpers.formatCurrency(transaction.amount, currency)}',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -574,8 +577,6 @@ class _TransactionsScreenState extends State<TransactionsScreen>
                 ),
               ],
             ),
-
-            // NEW: Display Tags
             if (transaction.tags.isNotEmpty) ...[
               const SizedBox(height: 12),
               Wrap(
@@ -616,8 +617,6 @@ class _TransactionsScreenState extends State<TransactionsScreen>
                 }).toList(),
               ),
             ],
-
-            // NEW: Display Notes
             if (transaction.notes != null && transaction.notes!.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
@@ -749,25 +748,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _FilterSheet(
-        selectedCategory: _selectedCategory,
-        startDate: _startDate,
-        endDate: _endDate,
-        onApply: (category, start, end) {
-          setState(() {
-            _selectedCategory = category;
-            _startDate = start;
-            _endDate = end;
-          });
-        },
-        onReset: () {
-          setState(() {
-            _selectedCategory = 'all';
-            _startDate = null;
-            _endDate = null;
-          });
-        },
-      ),
+      builder: (context) => const SizedBox.shrink(),
     );
   }
 
