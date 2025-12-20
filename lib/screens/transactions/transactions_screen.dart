@@ -94,25 +94,27 @@ class _TransactionsScreenState extends State<TransactionsScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Transactions',
-                style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.displayLarge?.color,
-                ),
-              ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2, end: 0),
-              Text(
-                'Manage your income and expenses',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ).animate().fadeIn(delay: 200.ms),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Transactions',
+                  style: GoogleFonts.poppins(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.displayLarge?.color,
+                  ),
+                ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2, end: 0),
+                Text(
+                  'Manage your income and expenses',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ).animate().fadeIn(delay: 200.ms),
+              ],
+            ),
           ),
           _buildSummaryCard(),
         ],
@@ -145,7 +147,11 @@ class _TransactionsScreenState extends State<TransactionsScreen>
         : AppTheme.primaryGradient; // Green gradient for positive
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      constraints: const BoxConstraints(
+        minWidth: 110,
+        maxWidth: 140,
+      ),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: cardGradient,
         borderRadius: BorderRadius.circular(16),
@@ -161,38 +167,48 @@ class _TransactionsScreenState extends State<TransactionsScreen>
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 isNegative ? Iconsax.danger : Iconsax.tick_circle,
                 color: Colors.white,
-                size: 14,
+                size: 12,
               ),
               const SizedBox(width: 4),
-              Text(
-                'This Month',
-                style: GoogleFonts.inter(
-                  fontSize: 10,
-                  color: Colors.white.withValues(alpha: 0.9),
+              Flexible(
+                child: Text(
+                  'This Month',
+                  style: GoogleFonts.inter(
+                    fontSize: 9,
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            '${isNegative ? '-' : ''}${Helpers.formatCurrency(balance.abs(), 'USD')}',
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${isNegative ? '-' : ''}${Helpers.formatCurrency(balance.abs(), 'USD')}',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              maxLines: 1,
             ),
           ),
           if (isNegative)
             Text(
               'Deficit',
               style: GoogleFonts.inter(
-                fontSize: 9,
+                fontSize: 8,
                 color: Colors.white.withValues(alpha: 0.8),
                 fontWeight: FontWeight.w500,
               ),
@@ -1025,15 +1041,14 @@ class _FilterSheetState extends State<_FilterSheet> {
         final picked = await showDatePicker(
           context: context,
           initialDate: date ?? now,
-          firstDate: DateTime(2000), // Allow selection from year 2000
-          lastDate: now, // Block future dates - can only select up to today
+          firstDate: DateTime(2000),
+          lastDate: now,
         );
         if (picked != null) {
           // Validate date range
           if (isStart &&
               _tempEndDate != null &&
               picked.isAfter(_tempEndDate!)) {
-            // Show error if start date is after end date
             Helpers.showSnackBar(
               context,
               'Start date cannot be after end date',
@@ -1044,7 +1059,6 @@ class _FilterSheetState extends State<_FilterSheet> {
           if (!isStart &&
               _tempStartDate != null &&
               picked.isBefore(_tempStartDate!)) {
-            // Show error if end date is before start date
             Helpers.showSnackBar(
               context,
               'End date cannot be before start date',
