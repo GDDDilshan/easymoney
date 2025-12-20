@@ -182,15 +182,24 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Text(
                   Helpers.getMonthName(now.month),
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                    color: isOverBudget
+                        ? const Color(0xFFEF4444)
+                        : AppTheme.primaryGreen,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -217,7 +226,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
               minHeight: 12,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
@@ -263,17 +272,62 @@ class _BudgetScreenState extends State<BudgetScreen> {
     bool isOverBudget = false,
     bool showNegative = false,
   }) {
+    // Premium color mapping for each stat
+    late Color iconBgColor;
+    late Color iconColor;
+    late Color valueColor;
+
+    // Determine colors based on which stat
+    if (label == 'Spent') {
+      iconBgColor = const Color(0xFFEF4444).withValues(alpha: 0.1);
+      iconColor = const Color(0xFFEF4444);
+      valueColor = const Color(0xFFEF4444);
+    } else if (label == 'Over Budget' || label == 'Remaining') {
+      if (isOverBudget) {
+        iconBgColor = const Color(0xFFEF4444).withValues(alpha: 0.1);
+        iconColor = const Color(0xFFEF4444);
+        valueColor = const Color(0xFFEF4444);
+      } else {
+        iconBgColor = const Color(0xFF3B82F6).withValues(alpha: 0.1);
+        iconColor = const Color(0xFF3B82F6);
+        valueColor = const Color(0xFF3B82F6);
+      }
+    } else {
+      // Used percentage
+      iconBgColor = const Color(0xFF8B5CF6).withValues(alpha: 0.1);
+      iconColor = const Color(0xFF8B5CF6);
+      valueColor = const Color(0xFF8B5CF6);
+    }
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 20),
-          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: 20,
+            ),
+          ),
+          const SizedBox(height: 8),
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
@@ -281,21 +335,22 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   ? '${value.toStringAsFixed(0)}%'
                   : '${showNegative ? '-' : ''}${Helpers.formatCurrency(value, 'USD')}',
               style: GoogleFonts.poppins(
-                fontSize: 14,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: valueColor,
               ),
               maxLines: 1,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
               label,
               style: GoogleFonts.inter(
-                fontSize: 10,
-                color: Colors.white.withValues(alpha: 0.8),
+                fontSize: 11,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
               ),
               maxLines: 1,
             ),
