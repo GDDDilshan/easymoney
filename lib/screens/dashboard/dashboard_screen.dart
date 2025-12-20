@@ -252,6 +252,19 @@ class DashboardHome extends StatelessWidget {
         transactionProvider.getTotalExpenses(startOfMonth, endOfMonth);
     final balance = monthlyIncome - monthlyExpenses;
 
+    // Check if balance is negative or positive
+    final isNegative = balance < 0;
+    final cardGradient = isNegative
+        ? const LinearGradient(
+            colors: [
+              Color(0xFFEF4444),
+              Color(0xFFF97316)
+            ], // Red gradient for negative
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : AppTheme.primaryGradient; // Green gradient for positive
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -260,11 +273,13 @@ class DashboardHome extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
+              gradient: cardGradient,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+                  color: isNegative
+                      ? Colors.red.withValues(alpha: 0.3)
+                      : AppTheme.primaryGreen.withValues(alpha: 0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -276,12 +291,22 @@ class DashboardHome extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Total Balance',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
+                    Row(
+                      children: [
+                        Icon(
+                          isNegative ? Iconsax.danger : Iconsax.tick_circle,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Total Balance',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ],
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -302,13 +327,36 @@ class DashboardHome extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  Helpers.formatCurrency(balance, 'USD'),
-                  style: GoogleFonts.poppins(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      '${isNegative ? '-' : ''}${Helpers.formatCurrency(balance.abs(), 'USD')}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (isNegative) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Deficit',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 20),
                 Row(

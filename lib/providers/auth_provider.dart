@@ -92,9 +92,13 @@ class AuthProvider with ChangeNotifier {
 
     try {
       await _authService.resetPassword(email);
-    } finally {
       _isLoading = false;
       notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      // Re-throw to let the caller handle it
+      rethrow;
     }
   }
 

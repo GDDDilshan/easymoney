@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../utils/helpers.dart';
 import 'register_screen.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../../widgets/forgot_password_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -59,28 +60,15 @@ class _LoginScreenState extends State<LoginScreen> {
   void _handleForgotPassword() {
     showDialog(
       context: context,
-      builder: (context) => ForgotPasswordDialog(
-        onSubmit: (email) async {
-          try {
-            final authProvider =
-                Provider.of<AuthProvider>(context, listen: false);
-            await authProvider.resetPassword(email);
-
-            if (mounted) {
-              Navigator.pop(context);
-              Helpers.showSnackBar(
-                context,
-                'Password reset email sent! Check your inbox for instructions.',
-              );
-            }
-          } catch (e) {
-            if (mounted) {
-              Helpers.showSnackBar(context, e.toString(), isError: true);
-            }
-          }
-        },
+      builder: (context) => const ForgotPasswordDialog(
+        onSubmit: _dummyOnSubmit,
       ),
     );
+  }
+
+  // Dummy function for ForgotPasswordDialog
+  static Future<void> _dummyOnSubmit(String email) async {
+    // Dialog handles everything internally
   }
 
   @override

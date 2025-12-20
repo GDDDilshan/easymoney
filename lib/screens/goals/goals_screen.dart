@@ -101,25 +101,27 @@ class _GoalsScreenState extends State<GoalsScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Savings Goals',
-                style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.displayLarge?.color,
-                ),
-              ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2, end: 0),
-              Text(
-                '$completedCount of $totalGoals goals completed',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ).animate().fadeIn(delay: 200.ms),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Savings Goals',
+                  style: GoogleFonts.poppins(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.displayLarge?.color,
+                  ),
+                ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2, end: 0),
+                Text(
+                  '$completedCount of $totalGoals goals completed',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ).animate().fadeIn(delay: 200.ms),
+              ],
+            ),
           ),
           Container(
             padding: const EdgeInsets.all(16),
@@ -195,7 +197,7 @@ class _GoalsScreenState extends State<GoalsScreen>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
       itemCount: goals.length,
       itemBuilder: (context, index) {
         final goal = goals[index];
@@ -248,6 +250,7 @@ class _GoalsScreenState extends State<GoalsScreen>
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
@@ -271,6 +274,7 @@ class _GoalsScreenState extends State<GoalsScreen>
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         goal.name,
@@ -298,12 +302,13 @@ class _GoalsScreenState extends State<GoalsScreen>
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Iconsax.tick_circle,
                             color: AppTheme.primaryGreen, size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          'Completed',
+                          'Done',
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -322,12 +327,13 @@ class _GoalsScreenState extends State<GoalsScreen>
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Iconsax.clock,
                             color: Colors.orange, size: 14),
                         const SizedBox(width: 4),
                         Text(
-                          '$daysRemaining days',
+                          '$daysRemaining d',
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -343,46 +349,58 @@ class _GoalsScreenState extends State<GoalsScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Current',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: Colors.grey,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Current',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
-                    Text(
-                      Helpers.formatCurrency(goal.currentAmount, 'USD'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(
-                            int.parse(goal.color.replaceFirst('#', '0xFF'))),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          Helpers.formatCurrency(goal.currentAmount, 'USD'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(int.parse(
+                                goal.color.replaceFirst('#', '0xFF'))),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Target',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: Colors.grey,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Target',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
-                    Text(
-                      Helpers.formatCurrency(goal.targetAmount, 'USD'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade700,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          Helpers.formatCurrency(goal.targetAmount, 'USD'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -423,16 +441,29 @@ class _GoalsScreenState extends State<GoalsScreen>
             ),
             if (!isCompleted) ...[
               const SizedBox(height: 16),
-              CustomButton(
-                text: 'Add Contribution',
-                onPressed: () => _showAddContributionDialog(goal),
-                icon: Iconsax.add_circle,
-                gradient: [
-                  Color(int.parse(goal.color.replaceFirst('#', '0xFF'))),
-                  Color(int.parse(goal.color.replaceFirst('#', '0xFF')))
-                      .withValues(alpha: 0.7),
-                ],
-                height: 44,
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showAddContributionDialog(goal),
+                  icon: const Icon(Iconsax.add_circle, size: 20),
+                  label: Text(
+                    'Add Contribution',
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        Color(int.parse(goal.color.replaceFirst('#', '0xFF'))),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
               ),
             ],
           ],

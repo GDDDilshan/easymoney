@@ -131,14 +131,29 @@ class _TransactionsScreenState extends State<TransactionsScreen>
         transactionProvider.getTotalExpenses(startOfMonth, endOfMonth);
     final balance = income - expenses;
 
+    // Check if balance is negative or positive
+    final isNegative = balance < 0;
+    final cardGradient = isNegative
+        ? const LinearGradient(
+            colors: [
+              Color(0xFFEF4444),
+              Color(0xFFF97316)
+            ], // Red gradient for negative
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : AppTheme.primaryGradient; // Green gradient for positive
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
+        gradient: cardGradient,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+            color: isNegative
+                ? Colors.red.withValues(alpha: 0.3)
+                : AppTheme.primaryGreen.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -147,22 +162,41 @@ class _TransactionsScreenState extends State<TransactionsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'This Month',
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
+          Row(
+            children: [
+              Icon(
+                isNegative ? Iconsax.danger : Iconsax.tick_circle,
+                color: Colors.white,
+                size: 14,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'This Month',
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
-            Helpers.formatCurrency(balance, 'USD'),
+            '${isNegative ? '-' : ''}${Helpers.formatCurrency(balance.abs(), 'USD')}',
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
+          if (isNegative)
+            Text(
+              'Deficit',
+              style: GoogleFonts.inter(
+                fontSize: 9,
+                color: Colors.white.withValues(alpha: 0.8),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
         ],
       ),
     ).animate().fadeIn(delay: 300.ms).scale(delay: 300.ms);
@@ -212,10 +246,10 @@ class _TransactionsScreenState extends State<TransactionsScreen>
   }
 
   Widget _buildFilters() {
-    final hasActiveFilters = _selectedType != 'all' ||
-        _selectedCategory != 'all' ||
-        _startDate != null ||
-        _endDate != null;
+    // IMPORTANT: Only highlight when category is selected OR date range is set
+    // Do NOT highlight for income/expense type selection
+    final hasActiveFilters =
+        _selectedCategory != 'all' || _startDate != null || _endDate != null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
