@@ -4,11 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../providers/goal_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/goal_model.dart';
 import '../../utils/helpers.dart';
 import '../../utils/theme.dart';
-import '../../utils/constants.dart';
-import '../../widgets/custom_button.dart';
 import '../../widgets/empty_state.dart';
 import 'add_goal_screen.dart';
 
@@ -38,6 +37,8 @@ class _GoalsScreenState extends State<GoalsScreen>
   @override
   Widget build(BuildContext context) {
     final goalProvider = Provider.of<GoalProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currency = authProvider.selectedCurrency;
 
     return Scaffold(
       body: Container(
@@ -67,9 +68,9 @@ class _GoalsScreenState extends State<GoalsScreen>
                         controller: _tabController,
                         children: [
                           _buildGoalsList(goalProvider.activeGoals,
-                              isActive: true),
+                              isActive: true, currency: currency),
                           _buildGoalsList(goalProvider.completedGoals,
-                              isActive: false),
+                              isActive: false, currency: currency),
                         ],
                       ),
               ),
@@ -141,7 +142,7 @@ class _GoalsScreenState extends State<GoalsScreen>
                 const Icon(Iconsax.flag, color: Colors.white, size: 24),
                 const SizedBox(height: 4),
                 Text(
-                  '$totalGoals',
+                  '${totalGoals}',
                   style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -183,7 +184,8 @@ class _GoalsScreenState extends State<GoalsScreen>
     ).animate().fadeIn(delay: 400.ms);
   }
 
-  Widget _buildGoalsList(List<GoalModel> goals, {required bool isActive}) {
+  Widget _buildGoalsList(List<GoalModel> goals,
+      {required bool isActive, required String currency}) {
     if (goals.isEmpty) {
       return EmptyState(
         icon: Iconsax.flag,
@@ -201,7 +203,7 @@ class _GoalsScreenState extends State<GoalsScreen>
       itemCount: goals.length,
       itemBuilder: (context, index) {
         final goal = goals[index];
-        return _buildGoalCard(goal, index, isActive)
+        return _buildGoalCard(goal, index, isActive, currency)
             .animate()
             .fadeIn(delay: (100 * index).ms)
             .slideX(begin: -0.2, end: 0);
@@ -209,7 +211,8 @@ class _GoalsScreenState extends State<GoalsScreen>
     );
   }
 
-  Widget _buildGoalCard(GoalModel goal, int index, bool isActive) {
+  Widget _buildGoalCard(
+      GoalModel goal, int index, bool isActive, String currency) {
     final progress = goal.progress;
     final isCompleted = goal.isCompleted;
     final remaining = goal.targetAmount - goal.currentAmount;
@@ -364,7 +367,7 @@ class _GoalsScreenState extends State<GoalsScreen>
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          Helpers.formatCurrency(goal.currentAmount, 'USD'),
+                          Helpers.formatCurrency(goal.currentAmount, currency),
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -391,7 +394,7 @@ class _GoalsScreenState extends State<GoalsScreen>
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          Helpers.formatCurrency(goal.targetAmount, 'USD'),
+                          Helpers.formatCurrency(goal.targetAmount, currency),
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -431,7 +434,7 @@ class _GoalsScreenState extends State<GoalsScreen>
                 ),
                 if (!isCompleted)
                   Text(
-                    '${Helpers.formatCurrency(remaining, 'USD')} to go',
+                    '${Helpers.formatCurrency(remaining, currency)} to go',
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: Colors.grey,
@@ -513,7 +516,8 @@ class _GoalsScreenState extends State<GoalsScreen>
               autofocus: true,
               decoration: InputDecoration(
                 labelText: 'Amount',
-                prefixText: '\$ ',
+                prefixText:
+                    '${Helpers.getCurrencySymbol(Provider.of<AuthProvider>(context).selectedCurrency)} ',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

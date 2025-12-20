@@ -6,6 +6,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../models/budget_model.dart';
 import '../../providers/budget_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../utils/helpers.dart';
 import '../../utils/theme.dart';
 import '../../utils/constants.dart';
@@ -27,15 +28,12 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
   String _selectedCategory = 'Food';
   int _alertThreshold = 80;
   bool _isLoading = false;
-
-  // NEW: Month and Year selection
   late int _selectedMonth;
   late int _selectedYear;
 
   @override
   void initState() {
     super.initState();
-    // Initialize with current month and year
     final now = DateTime.now();
     _selectedMonth = now.month;
     _selectedYear = now.year;
@@ -50,8 +48,8 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
     _amountController.text = b.monthlyLimit.toStringAsFixed(0);
     _selectedCategory = b.category;
     _alertThreshold = b.alertThreshold;
-    _selectedMonth = b.month; // NEW: Initialize month
-    _selectedYear = b.year; // NEW: Initialize year
+    _selectedMonth = b.month;
+    _selectedYear = b.year;
   }
 
   @override
@@ -62,6 +60,9 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currency = authProvider.selectedCurrency;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -90,15 +91,15 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildAmountInput(),
+                        _buildAmountInput(currency),
                         const SizedBox(height: 24),
                         _buildCategorySection(),
                         const SizedBox(height: 24),
-                        _buildMonthYearSelector(), // NEW: Month/Year selector
+                        _buildMonthYearSelector(),
                         const SizedBox(height: 24),
                         _buildAlertThresholdSection(),
                         const SizedBox(height: 24),
-                        _buildInfoCard(),
+                        _buildInfoCard(currency),
                         const SizedBox(height: 32),
                         _buildSaveButton(),
                       ],
@@ -142,7 +143,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
     ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2, end: 0);
   }
 
-  Widget _buildAmountInput() {
+  Widget _buildAmountInput(String currency) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -186,7 +187,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
               prefixIcon: Padding(
                 padding: const EdgeInsets.only(left: 20, top: 12),
                 child: Text(
-                  '\$',
+                  Helpers.getCurrencySymbol(currency),
                   style: GoogleFonts.poppins(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -279,7 +280,6 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
     ).animate().fadeIn(delay: 300.ms);
   }
 
-  // NEW: Month and Year Selector
   Widget _buildMonthYearSelector() {
     const months = [
       'January',
@@ -309,7 +309,6 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
         const SizedBox(height: 12),
         Row(
           children: [
-            // Month Selector
             Expanded(
               flex: 2,
               child: GestureDetector(
@@ -354,7 +353,6 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            // Year Selector
             Expanded(
               child: GestureDetector(
                 onTap: () => _showYearPicker(),
@@ -520,7 +518,6 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
 
   void _showYearPicker() {
     final currentYear = DateTime.now().year;
-    // Show current year + 9 future years (total 10 years)
     final years = List.generate(10, (index) => currentYear + index);
 
     showModalBottomSheet(
@@ -696,7 +693,7 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
     ).animate().fadeIn(delay: 500.ms);
   }
 
-  Widget _buildInfoCard() {
+  Widget _buildInfoCard(String currency) {
     final amount = double.tryParse(_amountController.text) ?? 0;
     final alertAmount = amount * (_alertThreshold / 100);
     const months = [
@@ -749,9 +746,9 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
           _buildSummaryRow(
               'Period', '${months[_selectedMonth - 1]} $_selectedYear'),
           _buildSummaryRow(
-              'Monthly Limit', Helpers.formatCurrency(amount, 'USD')),
-          _buildSummaryRow(
-              'Alert When Spent', Helpers.formatCurrency(alertAmount, 'USD')),
+              'Monthly Limit', Helpers.formatCurrency(amount, currency)),
+          _buildSummaryRow('Alert When Spent',
+              Helpers.formatCurrency(alertAmount, currency)),
           _buildSummaryRow('Alert Threshold', '$_alertThreshold%'),
         ],
       ),
@@ -820,8 +817,8 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
         category: _selectedCategory,
         monthlyLimit: double.parse(_amountController.text),
         alertThreshold: _alertThreshold,
-        month: _selectedMonth, // NEW: Save selected month
-        year: _selectedYear, // NEW: Save selected year
+        month: _selectedMonth,
+        year: _selectedYear,
       );
 
       final provider = Provider.of<BudgetProvider>(context, listen: false);

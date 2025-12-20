@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../providers/budget_provider.dart';
 import '../../providers/transaction_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/budget_model.dart';
 import '../../utils/helpers.dart';
 import '../../utils/theme.dart';
@@ -22,6 +23,8 @@ class BudgetScreen extends StatefulWidget {
 class _BudgetScreenState extends State<BudgetScreen> {
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currency = authProvider.selectedCurrency;
     final budgetProvider = Provider.of<BudgetProvider>(context);
     final transactionProvider = Provider.of<TransactionProvider>(context);
 
@@ -44,8 +47,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(budgetProvider, transactionProvider),
-              _buildOverviewCard(budgetProvider, transactionProvider),
+              _buildHeader(budgetProvider, transactionProvider, currency),
+              _buildOverviewCard(budgetProvider, transactionProvider, currency),
               Expanded(
                 child: budgetProvider.isLoading
                     ? const Center(child: CircularProgressIndicator())
@@ -59,7 +62,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                   'Create your first budget to start tracking spending',
                             ),
                           )
-                        : _buildBudgetList(budgetProvider, transactionProvider),
+                        : _buildBudgetList(
+                            budgetProvider, transactionProvider, currency),
               ),
             ],
           ),
@@ -80,9 +84,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
   }
 
-  Widget _buildHeader(
-      BudgetProvider budgetProvider, TransactionProvider transactionProvider) {
-    // Count only current month budgets
+  Widget _buildHeader(BudgetProvider budgetProvider,
+      TransactionProvider transactionProvider, String currency) {
     final now = DateTime.now();
     final currentMonthBudgets = budgetProvider.budgets
         .where((b) => b.month == now.month && b.year == now.year)
@@ -135,14 +138,12 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
   }
 
-  // NEW: Overview card shows ONLY current month data
-  Widget _buildOverviewCard(
-      BudgetProvider budgetProvider, TransactionProvider transactionProvider) {
+  Widget _buildOverviewCard(BudgetProvider budgetProvider,
+      TransactionProvider transactionProvider, String currency) {
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
     final endOfMonth = DateTime(now.year, now.month + 1, 0);
 
-    // Get only current month budgets
     final currentMonthBudgets = budgetProvider.budgets
         .where((b) => b.month == now.month && b.year == now.year)
         .toList();
@@ -207,7 +208,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   ],
                 ),
                 child: Text(
-                  Helpers.getMonthName(now.month), // Current month
+                  Helpers.getMonthName(now.month),
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: isOverBudget
@@ -221,7 +222,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            Helpers.formatCurrency(totalBudget, 'USD'),
+            Helpers.formatCurrency(totalBudget, currency),
             style: GoogleFonts.poppins(
               fontSize: 36,
               fontWeight: FontWeight.bold,
@@ -249,6 +250,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   totalSpent,
                   Iconsax.arrow_up_3,
                   isOverBudget: isOverBudget,
+                  currency: currency,
                 ),
               ),
               const SizedBox(width: 12),
@@ -259,6 +261,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   isOverBudget ? Iconsax.danger : Iconsax.wallet,
                   isOverBudget: isOverBudget,
                   showNegative: isOverBudget,
+                  currency: currency,
                 ),
               ),
               const SizedBox(width: 12),
@@ -269,6 +272,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   Iconsax.percentage_circle,
                   isOverBudget: isOverBudget,
                   isPercent: true,
+                  currency: currency,
                 ),
               ),
             ],
@@ -285,6 +289,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     bool isPercent = false,
     bool isOverBudget = false,
     bool showNegative = false,
+    required String currency,
   }) {
     late Color iconBgColor;
     late Color iconColor;
@@ -344,7 +349,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
             child: Text(
               isPercent
                   ? '${value.toStringAsFixed(0)}%'
-                  : '${showNegative ? '-' : ''}${Helpers.formatCurrency(value, 'USD')}',
+                  : '${showNegative ? '-' : ''}${Helpers.formatCurrency(value, currency)}',
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -371,29 +376,20 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
   }
 
-  // NEW: Sort budgets - Current Month first, then Future, then Past
-  Widget _buildBudgetList(
-      BudgetProvider budgetProvider, TransactionProvider transactionProvider) {
+  Widget _buildBudgetList(BudgetProvider budgetProvider,
+      TransactionProvider transactionProvider, String currency) {
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
     final endOfMonth = DateTime(now.year, now.month + 1, 0);
 
-    // Get category spending for current month
-    final categorySpending =
-        transactionProvider.getCategorySpending(startOfMonth, endOfMonth);
-
-    // Sort budgets: Current month -> Future -> Past
     final sortedBudgets = budgetProvider.budgets.toList()
       ..sort((a, b) {
-        // Current month first
         if (a.isCurrentMonth && !b.isCurrentMonth) return -1;
         if (!a.isCurrentMonth && b.isCurrentMonth) return 1;
 
-        // Then future months
         if (a.isFutureMonth && !b.isFutureMonth) return -1;
         if (!a.isFutureMonth && b.isFutureMonth) return 1;
 
-        // Within same category (current/future/past), sort by date
         final aDate = DateTime(a.year, a.month);
         final bDate = DateTime(b.year, b.month);
         return aDate.compareTo(bDate);
@@ -405,14 +401,13 @@ class _BudgetScreenState extends State<BudgetScreen> {
       itemBuilder: (context, index) {
         final budget = sortedBudgets[index];
 
-        // Calculate spent for this budget's specific month
         final budgetStart = DateTime(budget.year, budget.month, 1);
         final budgetEnd = DateTime(budget.year, budget.month + 1, 0);
         final budgetCategorySpending =
             transactionProvider.getCategorySpending(budgetStart, budgetEnd);
         final spent = budgetCategorySpending[budget.category] ?? 0;
 
-        return _buildBudgetCard(budget, spent, index)
+        return _buildBudgetCard(budget, spent, index, currency)
             .animate()
             .fadeIn(delay: (100 * index).ms)
             .slideX(begin: -0.2, end: 0);
@@ -420,14 +415,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
   }
 
-  Widget _buildBudgetCard(BudgetModel budget, double spent, int index) {
+  Widget _buildBudgetCard(
+      BudgetModel budget, double spent, int index, String currency) {
     final percentageUsed = (spent / budget.monthlyLimit * 100);
     final progress = percentageUsed.clamp(0, 100);
     final remaining = budget.monthlyLimit - spent;
     final isOverBudget = spent > budget.monthlyLimit;
     final isNearLimit = progress >= budget.alertThreshold;
 
-    // Get status color and label
     Color statusColor;
     String statusLabel;
     IconData statusIcon;
@@ -524,7 +519,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            budget.monthYearString, // NEW: Show month/year
+                            budget.monthYearString,
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               color: statusColor,
@@ -623,7 +618,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          Helpers.formatCurrency(spent, 'USD'),
+                          Helpers.formatCurrency(spent, currency),
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -651,7 +646,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          Helpers.formatCurrency(budget.monthlyLimit, 'USD'),
+                          Helpers.formatCurrency(budget.monthlyLimit, currency),
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -677,7 +672,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          '${isOverBudget ? '-' : ''}${Helpers.formatCurrency(remaining.abs(), 'USD')}',
+                          '${isOverBudget ? '-' : ''}${Helpers.formatCurrency(remaining.abs(), currency)}',
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
