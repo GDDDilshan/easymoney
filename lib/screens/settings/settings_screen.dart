@@ -85,12 +85,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         activeColor: AppTheme.primaryGreen,
                       ),
                     ),
-                    _buildSettingItem(
-                      'Language',
-                      'English (US)',
-                      Iconsax.global,
-                      onTap: () {},
-                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -136,48 +130,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 _buildSettingsSection(
-                  'Data & Privacy',
-                  [
-                    _buildSettingItem(
-                      'Export Data',
-                      'Download your financial data',
-                      Iconsax.document_download,
-                      onTap: () => _showExportDialog(),
-                    ),
-                    _buildSettingItem(
-                      'Backup',
-                      'Backup to cloud storage',
-                      Iconsax.cloud_add,
-                      onTap: () {},
-                    ),
-                    _buildSettingItem(
-                      'Privacy Policy',
-                      'Read our privacy policy',
-                      Iconsax.shield_tick,
-                      onTap: () {},
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildSettingsSection(
                   'About',
                   [
                     _buildSettingItem(
                       'App Version',
                       '1.0.0',
                       Iconsax.info_circle,
-                    ),
-                    _buildSettingItem(
-                      'Rate Us',
-                      'Rate EasyMoney on store',
-                      Iconsax.star,
-                      onTap: () {},
-                    ),
-                    _buildSettingItem(
-                      'Help & Support',
-                      'Get help with the app',
-                      Iconsax.message_question,
-                      onTap: () {},
                     ),
                   ],
                 ),
@@ -521,7 +479,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Current Password
                 TextFormField(
                   controller: currentPasswordController,
                   obscureText: obscureCurrentPassword,
@@ -545,7 +502,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // New Password
                 TextFormField(
                   controller: newPasswordController,
                   obscureText: obscureNewPassword,
@@ -569,7 +525,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Confirm Password
                 TextFormField(
                   controller: confirmPasswordController,
                   obscureText: obscureConfirmPassword,
@@ -602,7 +557,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             TextButton(
               onPressed: () async {
-                // Validation
                 if (currentPasswordController.text.isEmpty) {
                   Helpers.showSnackBar(context, 'Please enter current password',
                       isError: true);
@@ -659,45 +613,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: AppTheme.primaryGreen,
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showExportDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Export Data',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Choose export format:',
-              style: GoogleFonts.inter(),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Iconsax.document_text),
-              title: Text('PDF Report', style: GoogleFonts.inter()),
-              onTap: () {
-                Navigator.pop(context);
-                Helpers.showSnackBar(context, 'Exporting as PDF...');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Iconsax.document_download),
-              title: Text('CSV File', style: GoogleFonts.inter()),
-              onTap: () {
-                Navigator.pop(context);
-                Helpers.showSnackBar(context, 'Exporting as CSV...');
-              },
             ),
           ],
         ),
