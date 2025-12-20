@@ -49,6 +49,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final t = widget.transaction!;
     _amountController.text = t.amount.toStringAsFixed(2);
     _descriptionController.text = t.description;
+    _notesController.text = t.notes ?? ''; // NEW: Initialize notes
     _selectedType = t.type;
     _selectedCategory = t.category;
     _selectedCurrency = t.currency;
@@ -419,8 +420,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         final picked = await showDatePicker(
           context: context,
           initialDate: _selectedDate,
-          firstDate: DateTime(2000), // Allow selection from year 2000
-          lastDate: now, // Block future dates - can only select up to today
+          firstDate: DateTime(2000),
+          lastDate: now,
         );
         if (picked != null) {
           setState(() => _selectedDate = picked);
@@ -709,6 +710,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         date: combinedDateTime,
         currency: _selectedCurrency,
         tags: _tags,
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(), // NEW: Save notes
       );
 
       final provider = Provider.of<TransactionProvider>(context, listen: false);

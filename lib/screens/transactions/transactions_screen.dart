@@ -133,18 +133,14 @@ class _TransactionsScreenState extends State<TransactionsScreen>
         transactionProvider.getTotalExpenses(startOfMonth, endOfMonth);
     final balance = income - expenses;
 
-    // Check if balance is negative or positive
     final isNegative = balance < 0;
     final cardGradient = isNegative
         ? const LinearGradient(
-            colors: [
-              Color(0xFFEF4444),
-              Color(0xFFF97316)
-            ], // Red gradient for negative
+            colors: [Color(0xFFEF4444), Color(0xFFF97316)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           )
-        : AppTheme.primaryGradient; // Green gradient for positive
+        : AppTheme.primaryGradient;
 
     return Container(
       constraints: const BoxConstraints(
@@ -262,8 +258,6 @@ class _TransactionsScreenState extends State<TransactionsScreen>
   }
 
   Widget _buildFilters() {
-    // IMPORTANT: Only highlight when category is selected OR date range is set
-    // Do NOT highlight for income/expense type selection
     final hasActiveFilters =
         _selectedCategory != 'all' || _startDate != null || _endDate != null;
 
@@ -393,7 +387,6 @@ class _TransactionsScreenState extends State<TransactionsScreen>
       child: TabBar(
         controller: _tabController,
         onTap: (index) {
-          // Clear custom date range when switching tabs
           setState(() {
             _startDate = null;
             _endDate = null;
@@ -452,6 +445,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
     );
   }
 
+  // NEW: Updated transaction item with tags and notes display
   Widget _buildTransactionItem(TransactionModel transaction, int index) {
     final isIncome = transaction.type == 'income';
 
@@ -483,96 +477,189 @@ class _TransactionsScreenState extends State<TransactionsScreen>
             ),
           ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: isIncome
-                    ? AppTheme.incomeGradient
-                    : AppTheme.expenseGradient,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                isIncome ? Iconsax.arrow_down_1 : Iconsax.arrow_up_3,
-                color: Colors.white,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    transaction.description,
-                    style: GoogleFonts.inter(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+            Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: isIncome
+                        ? AppTheme.incomeGradient
+                        : AppTheme.expenseGradient,
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  const SizedBox(height: 4),
-                  Row(
+                  child: Icon(
+                    isIncome ? Iconsax.arrow_down_1 : Iconsax.arrow_up_3,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Helpers.getCategoryColor(transaction.category)
-                              .withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          transaction.category,
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color:
-                                Helpers.getCategoryColor(transaction.category),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(Iconsax.calendar,
-                          size: 12, color: Colors.grey.shade500),
-                      const SizedBox(width: 4),
                       Text(
-                        _getSmartDateFormat(transaction.date),
+                        transaction.description,
                         style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color:
+                                  Helpers.getCategoryColor(transaction.category)
+                                      .withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              transaction.category,
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Helpers.getCategoryColor(
+                                    transaction.category),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(Iconsax.calendar,
+                              size: 12, color: Colors.grey.shade500),
+                          const SizedBox(width: 4),
+                          Text(
+                            _getSmartDateFormat(transaction.date),
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${isIncome ? '+' : '-'}${Helpers.formatCurrency(transaction.amount, transaction.currency)}',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color:
-                        isIncome ? AppTheme.incomeColor : AppTheme.expenseColor,
-                  ),
                 ),
-                Text(
-                  Helpers.formatDate(transaction.date, format: 'hh:mm a'),
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: Colors.grey.shade500,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${isIncome ? '+' : '-'}${Helpers.formatCurrency(transaction.amount, transaction.currency)}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isIncome
+                            ? AppTheme.incomeColor
+                            : AppTheme.expenseColor,
+                      ),
+                    ),
+                    Text(
+                      Helpers.formatDate(transaction.date, format: 'hh:mm a'),
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
+
+            // NEW: Display Tags
+            if (transaction.tags.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: transaction.tags.map((tag) {
+                  return Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Iconsax.tag,
+                          size: 10,
+                          color: AppTheme.primaryGreen,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          tag,
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primaryGreen,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+
+            // NEW: Display Notes
+            if (transaction.notes != null && transaction.notes!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.grey.shade200,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Iconsax.note,
+                      size: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        transaction.notes!,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade700,
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -597,7 +684,6 @@ class _TransactionsScreenState extends State<TransactionsScreen>
       TransactionProvider provider) {
     var transactions = provider.transactions;
 
-    // Filter by search
     if (_searchController.text.isNotEmpty) {
       transactions = transactions
           .where((t) =>
@@ -610,19 +696,16 @@ class _TransactionsScreenState extends State<TransactionsScreen>
           .toList();
     }
 
-    // Filter by type
     if (_selectedType != 'all') {
       transactions =
           transactions.where((t) => t.type == _selectedType).toList();
     }
 
-    // Filter by category
     if (_selectedCategory != 'all') {
       transactions =
           transactions.where((t) => t.category == _selectedCategory).toList();
     }
 
-    // Filter by date range (only if user explicitly set dates)
     if (_startDate != null && _endDate != null) {
       transactions = transactions
           .where((t) =>
@@ -630,13 +713,11 @@ class _TransactionsScreenState extends State<TransactionsScreen>
               t.date.isBefore(_endDate!.add(const Duration(days: 1))))
           .toList();
     } else {
-      // Apply tab filter only when no custom date range is set
       final now = DateTime.now();
       switch (_tabController.index) {
-        case 0: // All - show all transactions
-          // Don't filter by date, show everything
+        case 0:
           break;
-        case 1: // Today
+        case 1:
           transactions = transactions
               .where((t) =>
                   t.date.year == now.year &&
@@ -644,14 +725,14 @@ class _TransactionsScreenState extends State<TransactionsScreen>
                   t.date.day == now.day)
               .toList();
           break;
-        case 2: // This Week
+        case 2:
           final weekStart = now.subtract(Duration(days: now.weekday - 1));
           transactions = transactions
               .where((t) =>
                   t.date.isAfter(weekStart.subtract(const Duration(days: 1))))
               .toList();
           break;
-        case 3: // This Month
+        case 3:
           transactions = transactions
               .where(
                   (t) => t.date.year == now.year && t.date.month == now.month)
@@ -745,23 +826,20 @@ class _TransactionsScreenState extends State<TransactionsScreen>
     );
   }
 
-  // Smart date formatting - show year only for old transactions
   String _getSmartDateFormat(DateTime date) {
     final now = DateTime.now();
     final currentYear = now.year;
     final transactionYear = date.year;
 
     if (transactionYear == currentYear) {
-      // Current year - show only month and day
       return Helpers.formatDate(date, format: 'MMM d');
     } else {
-      // Old year - show month, day, and year
       return Helpers.formatDate(date, format: 'MMM d, yyyy');
     }
   }
 }
 
-// ============ FILTER SHEET WIDGET ============
+// Filter Sheet Widget (remains the same - no changes needed)
 class _FilterSheet extends StatefulWidget {
   final String selectedCategory;
   final DateTime? startDate;
@@ -1045,7 +1123,6 @@ class _FilterSheetState extends State<_FilterSheet> {
           lastDate: now,
         );
         if (picked != null) {
-          // Validate date range
           if (isStart &&
               _tempEndDate != null &&
               picked.isAfter(_tempEndDate!)) {

@@ -8,6 +8,7 @@ class TransactionModel {
   final String description;
   final DateTime date;
   final List<String> tags;
+  final String? notes; // NEW: Added notes field
   final String currency;
   final DateTime createdAt;
 
@@ -19,6 +20,7 @@ class TransactionModel {
     required this.description,
     required this.date,
     this.tags = const [],
+    this.notes, // NEW: Added notes parameter
     this.currency = 'USD',
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -31,6 +33,7 @@ class TransactionModel {
       'description': description,
       'date': Timestamp.fromDate(date),
       'tags': tags,
+      'notes': notes, // NEW: Save notes to Firestore
       'currency': currency,
       'createdAt': Timestamp.fromDate(createdAt),
     };
@@ -45,6 +48,7 @@ class TransactionModel {
       description: map['description'] ?? '',
       date: (map['date'] as Timestamp).toDate(),
       tags: List<String>.from(map['tags'] ?? []),
+      notes: map['notes'], // NEW: Load notes from Firestore
       currency: map['currency'] ?? 'USD',
       createdAt: (map['createdAt'] as Timestamp).toDate(),
     );
@@ -58,6 +62,7 @@ class TransactionModel {
     String? description,
     DateTime? date,
     List<String>? tags,
+    String? notes, // NEW: Added to copyWith
     String? currency,
   }) {
     return TransactionModel(
@@ -68,6 +73,7 @@ class TransactionModel {
       description: description ?? this.description,
       date: date ?? this.date,
       tags: tags ?? this.tags,
+      notes: notes ?? this.notes, // NEW: Copy notes
       currency: currency ?? this.currency,
       createdAt: createdAt,
     );
