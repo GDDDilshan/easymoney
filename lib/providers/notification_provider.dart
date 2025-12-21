@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 import '../services/auth_service.dart';
@@ -10,10 +11,9 @@ class NotificationProvider with ChangeNotifier {
   bool _isLoading = false;
 
   List<NotificationModel> get notifications => _notifications;
-  List<NotificationModel> get unreadNotifications =>
-      _notifications.where((n) => !n.isRead).toList();
-  int get unreadCount => unreadNotifications.length;
-  bool get hasUnread => unreadCount > 0;
+  int get unreadCount =>
+      _notifications.length; // All notifications count as "unread"
+  bool get hasUnread => _notifications.isNotEmpty;
   bool get isLoading => _isLoading;
 
   NotificationProvider() {
@@ -72,24 +72,39 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
-  Future<void> deleteAllRead() async {
+  Future<void> deleteAllNotifications() async {
     if (_notificationService == null) return;
     try {
-      await _notificationService!.deleteAllRead();
+      final batch = FirebaseFirestore.instance.batch();
+      for (var notification in _notifications) {
+        if (notification.id != null) {
+          await _notificationService!.deleteNotification(notification.id!);
+        }
+      }
     } catch (e) {
-      debugPrint('Error deleting read notifications: $e');
+      debugPrint('Error deleting all notifications: $e');
     }
   }
 
-  // Helper method to create notifications
+  // Helper method to create notifications - ONLY FOR CURRENT MONTH
   Future<void> checkAndCreateNotifications({
     required double spent,
     required double limit,
     required String category,
     required int threshold,
     required String budgetId,
+    required int budgetMonth,
+    required int budgetYear,
   }) async {
     if (_notificationService == null) return;
+
+    final now = DateTime.now();
+
+    // ONLY create notifications for CURRENT month budgets
+    if (budgetMonth != now.month || budgetYear != now.year) {
+      debugPrint('⏭️ Skipping notification - Budget is not for current month');
+      return;
+    }
 
     final percentage = (spent / limit * 100);
 
@@ -97,9 +112,7 @@ class NotificationProvider with ChangeNotifier {
     if (spent > limit) {
       // Check if we already sent this notification
       final hasExceededNotif = _notifications.any((n) =>
-          n.type == NotificationType.budgetExceeded &&
-          n.relatedId == budgetId &&
-          !n.isRead);
+          n.type == NotificationType.budgetExceeded && n.relatedId == budgetId);
 
       if (!hasExceededNotif) {
         await _notificationService!.createBudgetExceeded(
@@ -112,9 +125,7 @@ class NotificationProvider with ChangeNotifier {
     } else if (percentage >= threshold) {
       // Check if we already sent this notification
       final hasWarningNotif = _notifications.any((n) =>
-          n.type == NotificationType.budgetWarning &&
-          n.relatedId == budgetId &&
-          !n.isRead);
+          n.type == NotificationType.budgetWarning && n.relatedId == budgetId);
 
       if (!hasWarningNotif) {
         await _notificationService!.createBudgetWarning(
@@ -133,17 +144,22 @@ class NotificationProvider with ChangeNotifier {
     required double currentAmount,
     required double targetAmount,
     required String goalId,
+    required DateTime targetDate,
   }) async {
     if (_notificationService == null) return;
+
+    // ONLY create notifications for goals with future or current target dates
+    if (targetDate.isBefore(DateTime.now())) {
+      debugPrint('⏭️ Skipping notification - Goal target date has passed');
+      return;
+    }
 
     final percentage = (currentAmount / targetAmount * 100);
 
     // Goal completed
     if (currentAmount >= targetAmount) {
       final hasCompletedNotif = _notifications.any((n) =>
-          n.type == NotificationType.goalCompleted &&
-          n.relatedId == goalId &&
-          !n.isRead);
+          n.type == NotificationType.goalCompleted && n.relatedId == goalId);
 
       if (!hasCompletedNotif) {
         await _notificationService!.createGoalCompleted(
@@ -155,9 +171,7 @@ class NotificationProvider with ChangeNotifier {
     } else if (percentage >= 90) {
       // Near target (90%)
       final hasNearTargetNotif = _notifications.any((n) =>
-          n.type == NotificationType.goalNearTarget &&
-          n.relatedId == goalId &&
-          !n.isRead);
+          n.type == NotificationType.goalNearTarget && n.relatedId == goalId);
 
       if (!hasNearTargetNotif) {
         await _notificationService!.createGoalNearTarget(

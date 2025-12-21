@@ -34,6 +34,7 @@ class _GoalsScreenState extends State<GoalsScreen>
         currentAmount: goal.currentAmount,
         targetAmount: goal.targetAmount,
         goalId: goal.id!,
+        targetDate: goal.targetDate, // NEW
       );
     }
   }
@@ -546,16 +547,13 @@ class _GoalsScreenState extends State<GoalsScreen>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.inter()),
-          ),
-          TextButton(
             onPressed: () async {
               final amount = double.tryParse(amountController.text);
               if (amount != null && amount > 0) {
                 await Provider.of<GoalProvider>(context, listen: false)
                     .addContribution(goal.id!, amount);
 
+                // Check goal notifications with targetDate
                 final notificationProvider = Provider.of<NotificationProvider>(
                   context,
                   listen: false,
@@ -567,12 +565,15 @@ class _GoalsScreenState extends State<GoalsScreen>
                   currentAmount: newAmount,
                   targetAmount: goal.targetAmount,
                   goalId: goal.id!,
+                  targetDate: goal.targetDate, // NEW
                 );
 
                 if (context.mounted) {
                   Navigator.pop(context);
                   Helpers.showSnackBar(
-                      context, 'Contribution added successfully');
+                    context,
+                    'Contribution added successfully',
+                  );
                 }
               }
             },

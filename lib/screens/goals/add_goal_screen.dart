@@ -620,6 +620,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
           currentAmount: goal.currentAmount,
           targetAmount: goal.targetAmount,
           goalId: goal.id ?? widget.goal?.id ?? '',
+          targetDate: goal.targetDate, // NEW
         );
       }
 

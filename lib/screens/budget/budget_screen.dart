@@ -32,6 +32,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     final now = DateTime.now();
 
     for (var budget in budgetProvider.budgets) {
+      // Only check current month budgets
       if (budget.month == now.month && budget.year == now.year) {
         final budgetStart = DateTime(budget.year, budget.month, 1);
         final budgetEnd = DateTime(budget.year, budget.month + 1, 0);
@@ -43,12 +44,15 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
         final spent = budgetCategorySpending[budget.category] ?? 0;
 
+        // Check and create notifications - WITH MONTH/YEAR PARAMS
         notificationProvider.checkAndCreateNotifications(
           spent: spent,
           limit: budget.monthlyLimit,
           category: budget.category,
           threshold: budget.alertThreshold,
           budgetId: budget.id!,
+          budgetMonth: budget.month, // NEW
+          budgetYear: budget.year, // NEW
         );
       }
     }

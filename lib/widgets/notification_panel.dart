@@ -110,7 +110,7 @@ class NotificationPanel extends StatelessWidget {
                   Consumer<NotificationProvider>(
                     builder: (context, provider, _) {
                       return Text(
-                        '${provider.unreadCount} unread',
+                        '${provider.notifications.length} total',
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: Colors.grey,
@@ -124,23 +124,23 @@ class NotificationPanel extends StatelessWidget {
           ),
           Consumer<NotificationProvider>(
             builder: (context, provider, _) {
-              if (provider.hasUnread) {
+              if (provider.notifications.isNotEmpty) {
                 return TextButton(
                   onPressed: () async {
-                    await provider.markAllAsRead();
+                    await provider.deleteAllNotifications();
                     if (context.mounted) {
                       Helpers.showSnackBar(
                         context,
-                        'All notifications marked as read',
+                        'All notifications cleared',
                       );
                     }
                   },
                   child: Text(
-                    'Mark all read',
+                    'Clear all',
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryGreen,
+                      color: Colors.red,
                     ),
                   ),
                 );
@@ -159,8 +159,6 @@ class NotificationPanel extends StatelessWidget {
     int index,
     NotificationProvider provider,
   ) {
-    final isUnread = !notification.isRead;
-
     return Dismissible(
       key: Key(notification.id ?? ''),
       direction: DismissDirection.endToStart,
@@ -186,22 +184,18 @@ class NotificationPanel extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isUnread
-                ? AppTheme.primaryGreen.withValues(alpha: 0.08)
-                : Theme.of(context).cardTheme.color,
+            color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isUnread
-                  ? AppTheme.primaryGreen.withValues(alpha: 0.2)
-                  : Colors.transparent,
-              width: isUnread ? 2 : 0,
+              color: _getNotificationColor(notification.type)
+                  .withValues(alpha: 0.3),
+              width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: isUnread
-                    ? AppTheme.primaryGreen.withValues(alpha: 0.1)
-                    : Colors.black.withValues(alpha: 0.05),
-                blurRadius: isUnread ? 12 : 8,
+                color: _getNotificationColor(notification.type)
+                    .withValues(alpha: 0.15),
+                blurRadius: 12,
                 offset: const Offset(0, 2),
               ),
             ],
@@ -238,53 +232,15 @@ class NotificationPanel extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            notification.title,
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color:
-                                  Theme.of(context).textTheme.bodyLarge?.color,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (isUnread)
-                          Container(
-                            width: 8,
-                            height: 8,
-                            margin: const EdgeInsets.only(left: 8),
-                            decoration: BoxDecoration(
-                              gradient: AppTheme.primaryGradient,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.primaryGreen
-                                      .withValues(alpha: 0.5),
-                                  blurRadius: 4,
-                                  spreadRadius: 1,
-                                ),
-                              ],
-                            ),
-                          )
-                              .animate(
-                                  onPlay: (controller) => controller.repeat())
-                              .scale(
-                                duration: 1000.ms,
-                                begin: const Offset(1, 1),
-                                end: const Offset(1.3, 1.3),
-                              )
-                              .then()
-                              .scale(
-                                duration: 1000.ms,
-                                begin: const Offset(1.3, 1.3),
-                                end: const Offset(1, 1),
-                              ),
-                      ],
+                    Text(
+                      notification.title,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -374,10 +330,8 @@ class NotificationPanel extends StatelessWidget {
     NotificationModel notification,
     NotificationProvider provider,
   ) async {
-    // Mark as read
-    if (!notification.isRead) {
-      await provider.markAsRead(notification.id!);
-    }
+    // Delete notification immediately (not just mark as read)
+    await provider.deleteNotification(notification.id!);
 
     // Close notification panel
     Navigator.pop(context);
