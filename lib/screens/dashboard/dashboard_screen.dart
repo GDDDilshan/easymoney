@@ -752,8 +752,7 @@ class DashboardHome extends StatelessWidget {
   Widget _buildGoalsSection(BuildContext context) {
     final goalProvider = Provider.of<GoalProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context);
-    final currency =
-        authProvider.selectedCurrency; // FIXED: Get user's selected currency
+    final currency = authProvider.selectedCurrency;
     final activeGoals = goalProvider.activeGoals.toList();
 
     if (activeGoals.isEmpty) {
@@ -774,21 +773,26 @@ class DashboardHome extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ...activeGoals
-              .map((goal) => _buildGoalItem(goal, currency))
-              .toList(), // FIXED: Pass currency
+              .map((goal) => _buildGoalItem(context, goal, currency))
+              .toList(),
         ],
       ),
     ).animate().fadeIn(delay: 700.ms).slideY(begin: 0.2, end: 0);
   }
 
-  Widget _buildGoalItem(goal, String currency) {
-    // FIXED: Accept currency parameter
+  Widget _buildGoalItem(BuildContext context, goal, String currency) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1E293B)
+            : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Color(int.parse(goal.color.replaceFirst('#', '0xFF')))
+              .withValues(alpha: 0.3),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -826,13 +830,18 @@ class DashboardHome extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFFF1F5F9)
+                            : const Color(0xFF0F172A),
                       ),
                     ),
                     Text(
-                      '${Helpers.formatCurrency(goal.currentAmount, currency)} / ${Helpers.formatCurrency(goal.targetAmount, currency)}', // FIXED: Use selected currency
+                      '${Helpers.formatCurrency(goal.currentAmount, currency)} / ${Helpers.formatCurrency(goal.targetAmount, currency)}',
                       style: GoogleFonts.inter(
                         fontSize: 12,
-                        color: Colors.grey,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFFA1A9B8)
+                            : Colors.grey,
                       ),
                     ),
                   ],
@@ -853,7 +862,9 @@ class DashboardHome extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: goal.progress / 100,
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF334155)
+                  : Colors.grey.shade200,
               valueColor: AlwaysStoppedAnimation(
                 Color(int.parse(goal.color.replaceFirst('#', '0xFF'))),
               ),
@@ -868,8 +879,7 @@ class DashboardHome extends StatelessWidget {
   Widget _buildWeeklyTransactions(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context);
-    final currency =
-        authProvider.selectedCurrency; // FIXED: Get user's selected currency
+    final currency = authProvider.selectedCurrency;
 
     final now = DateTime.now();
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
@@ -899,16 +909,15 @@ class DashboardHome extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ...weeklyTransactions
-              .map((t) =>
-                  _buildTransactionItem(t, currency)) // FIXED: Pass currency
+              .map((t) => _buildTransactionItem(context, t, currency))
               .toList(),
         ],
       ),
     ).animate().fadeIn(delay: 800.ms).slideY(begin: 0.2, end: 0);
   }
 
-  Widget _buildTransactionItem(transaction, String currency) {
-    // FIXED: Accept currency parameter
+  Widget _buildTransactionItem(
+      BuildContext context, transaction, String currency) {
     final isIncome = transaction.type == 'income';
     final now = DateTime.now();
     final currentYear = now.year;
@@ -920,7 +929,9 @@ class DashboardHome extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1E293B)
+            : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -956,20 +967,25 @@ class DashboardHome extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFFF1F5F9)
+                        : const Color(0xFF0F172A),
                   ),
                 ),
                 Text(
                   '${transaction.category} • ${Helpers.formatDate(transaction.date, format: dateFormat)}',
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: Colors.grey,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFFA1A9B8)
+                        : Colors.grey,
                   ),
                 ),
               ],
             ),
           ),
           Text(
-            '${isIncome ? '+' : '-'}${Helpers.formatCurrency(transaction.amount, currency)}', // FIXED: Use selected currency
+            '${isIncome ? '+' : '-'}${Helpers.formatCurrency(transaction.amount, currency)}',
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,

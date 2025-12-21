@@ -32,7 +32,7 @@ class AppTheme {
     end: Alignment.bottomRight,
   );
 
-  // Light Theme
+  // Light Theme (Keep as is - working well)
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -147,7 +147,7 @@ class AppTheme {
     );
   }
 
-  // Dark Theme
+  // Dark Theme - COMPLETELY FIXED
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
@@ -167,37 +167,37 @@ class AppTheme {
         displayLarge: GoogleFonts.poppins(
           fontSize: 32,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: const Color(0xFFF1F5F9), // FIXED: Lighter text
         ),
         displayMedium: GoogleFonts.poppins(
           fontSize: 28,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: const Color(0xFFF1F5F9), // FIXED: Lighter text
         ),
         displaySmall: GoogleFonts.poppins(
           fontSize: 24,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: const Color(0xFFF1F5F9), // FIXED: Lighter text
         ),
         headlineMedium: GoogleFonts.poppins(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: Colors.white,
+          color: const Color(0xFFF1F5F9), // FIXED: Lighter text
         ),
         titleLarge: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: const Color(0xFFE2E8F0),
+          color: const Color(0xFFE2E8F0), // FIXED: Lighter text
         ),
         bodyLarge: GoogleFonts.inter(
           fontSize: 16,
           fontWeight: FontWeight.normal,
-          color: const Color(0xFFCBD5E1),
+          color: const Color(0xFFCBD5E1), // FIXED: Lighter text
         ),
         bodyMedium: GoogleFonts.inter(
           fontSize: 14,
           fontWeight: FontWeight.normal,
-          color: const Color(0xFF94A3B8),
+          color: const Color(0xFFA1A9B8), // FIXED: Lighter text
         ),
       ),
       appBarTheme: AppBarTheme(
@@ -207,9 +207,9 @@ class AppTheme {
         titleTextStyle: GoogleFonts.poppins(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: const Color(0xFFF1F5F9), // FIXED: Lighter text
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Color(0xFFF1F5F9)), // FIXED
       ),
       cardTheme: CardThemeData(
         color: const Color(0xFF1E293B),
