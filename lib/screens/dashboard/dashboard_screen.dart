@@ -252,8 +252,7 @@ class DashboardHome extends StatelessWidget {
   Widget _buildStatsCards(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context);
-    final currency =
-        authProvider.selectedCurrency; // FIXED: Get user's selected currency
+    final currency = authProvider.selectedCurrency;
     final goalProvider = Provider.of<GoalProvider>(context);
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
@@ -366,7 +365,7 @@ class DashboardHome extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '${isNegative ? '-' : ''}${Helpers.formatCurrency(balance.abs(), currency)}', // FIXED: Use selected currency
+                      '${isNegative ? '-' : ''}${Helpers.formatCurrency(balance.abs(), currency)}',
                       style: GoogleFonts.poppins(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
@@ -400,8 +399,7 @@ class DashboardHome extends StatelessWidget {
                     Expanded(
                       child: _buildMiniStat(
                         'Income',
-                        Helpers.formatCurrency(monthlyIncome,
-                            currency), // FIXED: Use selected currency
+                        Helpers.formatCurrency(monthlyIncome, currency),
                         Iconsax.arrow_down_1,
                         Colors.white,
                       ),
@@ -410,8 +408,7 @@ class DashboardHome extends StatelessWidget {
                     Expanded(
                       child: _buildMiniStat(
                         'Expenses',
-                        Helpers.formatCurrency(monthlyExpenses,
-                            currency), // FIXED: Use selected currency
+                        Helpers.formatCurrency(monthlyExpenses, currency),
                         Iconsax.arrow_up_3,
                         Colors.white,
                       ),
@@ -425,140 +422,136 @@ class DashboardHome extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardTheme.color,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Transactions',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Iconsax.document_text,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '$monthlyTransactions',
-                        style: GoogleFonts.poppins(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF6366F1),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'This Month',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                child: _buildHighlightedStatCard(
+                  context,
+                  label: 'Transactions',
+                  value: '$monthlyTransactions',
+                  sublabel: 'This Month',
+                  icon: Iconsax.document_text,
+                  gradient: const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                  isBold: true,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardTheme.color,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Active Goals',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFF59E0B), Color(0xFFF97316)],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Iconsax.flag,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '$activeGoalsCount',
-                        style: GoogleFonts.poppins(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFFF59E0B),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'In Progress',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                child: _buildHighlightedStatCard(
+                  context,
+                  label: 'Active Goals',
+                  value: '$activeGoalsCount',
+                  sublabel: 'In Progress',
+                  icon: Iconsax.flag,
+                  gradient: const [Color(0xFFF59E0B), Color(0xFFF97316)],
+                  isBold: true,
                 ),
               ),
             ],
           ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2, end: 0),
+        ],
+      ),
+    );
+  }
+
+// NEW: Enhanced highlighted stat card widget
+  Widget _buildHighlightedStatCard(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required String sublabel,
+    required IconData icon,
+    required List<Color> gradient,
+    required bool isBold,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(
+                                0xFFCBD5E1) // Light gray for dark mode
+                            : Colors.grey.shade600,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // BOLD HIGHLIGHTED VALUE
+                    Text(
+                      value,
+                      style: GoogleFonts.poppins(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w900, // Extra bold
+                        color: gradient.first,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: gradient),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: gradient.first.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // BOLD HIGHLIGHTED SUBLABEL
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: gradient.first.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: gradient.first.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+            ),
+            child: Text(
+              sublabel,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.bold, // Bold
+                color: gradient.first,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
         ],
       ),
     );
