@@ -17,6 +17,8 @@ import '../budget/budget_screen.dart';
 import '../analytics/analytics_screen.dart';
 import '../goals/goals_screen.dart';
 import '../settings/settings_screen.dart';
+import '../../widgets/notification_bell.dart';
+import '../../providers/notification_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   final int initialIndex;
@@ -222,25 +224,12 @@ class DashboardHome extends StatelessWidget {
                         .slideX(begin: -0.2, end: 0),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryGreen.withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Iconsax.notification,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ).animate().fadeIn(delay: 300.ms).scale(delay: 300.ms),
+
+                // UPDATED: Use NotificationBell widget
+                const NotificationBell()
+                    .animate()
+                    .fadeIn(delay: 300.ms)
+                    .scale(delay: 300.ms),
               ],
             ),
           ],

@@ -10,6 +10,7 @@ import '../../utils/helpers.dart';
 import '../../utils/theme.dart';
 import '../../widgets/empty_state.dart';
 import 'add_goal_screen.dart';
+import '../../providers/notification_provider.dart';
 
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
@@ -22,10 +23,28 @@ class _GoalsScreenState extends State<GoalsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  void _checkGoalNotifications(BuildContext context) {
+    final goalProvider = Provider.of<GoalProvider>(context, listen: false);
+    final notificationProvider =
+        Provider.of<NotificationProvider>(context, listen: false);
+
+    for (var goal in goalProvider.goals) {
+      notificationProvider.checkGoalNotifications(
+        goalName: goal.name,
+        currentAmount: goal.currentAmount,
+        targetAmount: goal.targetAmount,
+        goalId: goal.id!,
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkGoalNotifications(context);
+    });
   }
 
   @override
@@ -536,6 +555,20 @@ class _GoalsScreenState extends State<GoalsScreen>
               if (amount != null && amount > 0) {
                 await Provider.of<GoalProvider>(context, listen: false)
                     .addContribution(goal.id!, amount);
+
+                final notificationProvider = Provider.of<NotificationProvider>(
+                  context,
+                  listen: false,
+                );
+
+                final newAmount = goal.currentAmount + amount;
+                await notificationProvider.checkGoalNotifications(
+                  goalName: goal.name,
+                  currentAmount: newAmount,
+                  targetAmount: goal.targetAmount,
+                  goalId: goal.id!,
+                );
+
                 if (context.mounted) {
                   Navigator.pop(context);
                   Helpers.showSnackBar(

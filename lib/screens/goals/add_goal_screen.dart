@@ -11,6 +11,7 @@ import '../../utils/helpers.dart';
 import '../../utils/theme.dart';
 import '../../utils/constants.dart';
 import '../../widgets/custom_button.dart';
+import '../../providers/notification_provider.dart';
 
 class AddGoalScreen extends StatefulWidget {
   final GoalModel? goal;
@@ -606,6 +607,20 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
         if (mounted) {
           Helpers.showSnackBar(context, 'Goal created successfully');
         }
+      }
+
+      if (mounted) {
+        final notificationProvider = Provider.of<NotificationProvider>(
+          context,
+          listen: false,
+        );
+
+        await notificationProvider.checkGoalNotifications(
+          goalName: goal.name,
+          currentAmount: goal.currentAmount,
+          targetAmount: goal.targetAmount,
+          goalId: goal.id ?? widget.goal?.id ?? '',
+        );
       }
 
       if (mounted) {

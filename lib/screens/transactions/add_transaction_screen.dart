@@ -12,6 +12,8 @@ import '../../utils/theme.dart';
 import '../../utils/constants.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
+import '../../providers/notification_provider.dart';
+import '../../providers/budget_provider.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final TransactionModel? transaction;
@@ -23,6 +25,38 @@ class AddTransactionScreen extends StatefulWidget {
 }
 
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
+  void _checkAllBudgetsAfterTransaction() {
+    final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
+    final transactionProvider =
+        Provider.of<TransactionProvider>(context, listen: false);
+    final notificationProvider =
+        Provider.of<NotificationProvider>(context, listen: false);
+
+    final now = DateTime.now();
+
+    for (var budget in budgetProvider.budgets) {
+      if (budget.month == now.month && budget.year == now.year) {
+        final budgetStart = DateTime(budget.year, budget.month, 1);
+        final budgetEnd = DateTime(budget.year, budget.month + 1, 0);
+
+        final categorySpending = transactionProvider.getCategorySpending(
+          budgetStart,
+          budgetEnd,
+        );
+
+        final spent = categorySpending[budget.category] ?? 0;
+
+        notificationProvider.checkAndCreateNotifications(
+          spent: spent,
+          limit: budget.monthlyLimit,
+          category: budget.category,
+          threshold: budget.alertThreshold,
+          budgetId: budget.id!,
+        );
+      }
+    }
+  }
+
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -681,6 +715,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         if (mounted) {
           Helpers.showSnackBar(context, 'Transaction added successfully');
         }
+      }
+
+      if (mounted && _selectedType == 'expense') {
+        _checkAllBudgetsAfterTransaction();
       }
 
       if (mounted) {

@@ -1,4 +1,3 @@
-// lib/main.dart - FIXED VERSION
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -10,13 +9,12 @@ import 'providers/transaction_provider.dart';
 import 'providers/budget_provider.dart';
 import 'providers/goal_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/notification_provider.dart'; // NEW
 import 'utils/theme.dart';
 
 void main() async {
-  // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -25,13 +23,11 @@ void main() async {
     debugPrint('Firebase initialization error: $e');
   }
 
-  // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -52,6 +48,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()), // NEW
         ChangeNotifierProxyProvider<AuthProvider, TransactionProvider>(
           create: (_) => TransactionProvider(),
           update: (_, auth, previous) => previous ?? TransactionProvider(),
@@ -70,13 +67,9 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             title: 'EasyMoney',
             debugShowCheckedModeBanner: false,
-
-            // Theme configuration
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
-
-            // Home screen
             home: const SplashScreen(),
           );
         },

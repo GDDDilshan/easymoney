@@ -12,6 +12,7 @@ import '../../utils/theme.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/empty_state.dart';
 import 'add_budget_screen.dart';
+import '../../providers/notification_provider.dart';
 
 class BudgetScreen extends StatefulWidget {
   const BudgetScreen({super.key});
@@ -21,6 +22,47 @@ class BudgetScreen extends StatefulWidget {
 }
 
 class _BudgetScreenState extends State<BudgetScreen> {
+  void _checkBudgetNotifications(BuildContext context) {
+    final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
+    final transactionProvider =
+        Provider.of<TransactionProvider>(context, listen: false);
+    final notificationProvider =
+        Provider.of<NotificationProvider>(context, listen: false);
+
+    final now = DateTime.now();
+
+    for (var budget in budgetProvider.budgets) {
+      if (budget.month == now.month && budget.year == now.year) {
+        final budgetStart = DateTime(budget.year, budget.month, 1);
+        final budgetEnd = DateTime(budget.year, budget.month + 1, 0);
+
+        final budgetCategorySpending = transactionProvider.getCategorySpending(
+          budgetStart,
+          budgetEnd,
+        );
+
+        final spent = budgetCategorySpending[budget.category] ?? 0;
+
+        notificationProvider.checkAndCreateNotifications(
+          spent: spent,
+          limit: budget.monthlyLimit,
+          category: budget.category,
+          threshold: budget.alertThreshold,
+          budgetId: budget.id!,
+        );
+      }
+    }
+  }
+
+  // REPLACE the existing initState with this:
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkBudgetNotifications(context);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
