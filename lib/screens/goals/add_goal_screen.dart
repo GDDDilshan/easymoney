@@ -155,6 +155,9 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
         const SizedBox(height: 8),
         TextFormField(
           controller: _nameController,
+          onChanged: (value) {
+            setState(() {}); // FIXED: Update preview when name changes
+          },
           decoration: InputDecoration(
             hintText: 'e.g., New Car, Vacation, Emergency Fund',
             prefixIcon: const Icon(Iconsax.flag),
@@ -222,6 +225,9 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                 ],
+                onChanged: (value) {
+                  setState(() {}); // FIXED: Update preview when amount changes
+                },
                 style: GoogleFonts.poppins(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -271,6 +277,10 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                             FilteringTextInputFormatter.allow(
                                 RegExp(r'^\d*\.?\d{0,2}'))
                           ],
+                          onChanged: (value) {
+                            setState(
+                                () {}); // FIXED: Update preview when current amount changes
+                          },
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -439,22 +449,29 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     final currentAmount = double.tryParse(_currentAmountController.text) ?? 0;
     final progress =
         targetAmount > 0 ? (currentAmount / targetAmount * 100) : 0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(int.parse(_selectedColor.replaceFirst('#', '0xFF')))
+        // FIXED: Better background for both light and dark mode
+        gradient: isDark
+            ? LinearGradient(
+                colors: [
+                  const Color(0xFF1E293B),
+                  const Color(0xFF1E293B).withValues(alpha: 0.95),
+                ],
+              )
+            : null,
+        color: isDark
+            ? null
+            : Color(int.parse(_selectedColor.replaceFirst('#', '0xFF')))
                 .withValues(alpha: 0.1),
-            Color(int.parse(_selectedColor.replaceFirst('#', '0xFF')))
-                .withValues(alpha: 0.05),
-          ],
-        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: Color(int.parse(_selectedColor.replaceFirst('#', '0xFF')))
-              .withValues(alpha: 0.3),
+              .withValues(alpha: isDark ? 0.5 : 0.3),
+          width: 2,
         ),
       ),
       child: Column(
@@ -488,6 +505,10 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.bold,
+              // FIXED: Much brighter text for dark mode
+              color: isDark
+                  ? const Color(0xFFF1F5F9) // Almost white
+                  : const Color(0xFF0F172A),
             ),
           ),
           const SizedBox(height: 12),
@@ -507,7 +528,11 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                 Helpers.formatCurrency(targetAmount, currency),
                 style: GoogleFonts.inter(
                   fontSize: 14,
-                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w600, // ADDED: Bolder weight
+                  // FIXED: Much brighter text for dark mode
+                  color: isDark
+                      ? const Color(0xFFE2E8F0) // Very light gray - BRIGHTER!
+                      : Colors.grey.shade700,
                 ),
               ),
             ],
@@ -517,7 +542,9 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
               value: (progress / 100).clamp(0, 1),
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: isDark
+                  ? const Color(0xFF334155) // Dark mode
+                  : Colors.grey.shade200,
               valueColor: AlwaysStoppedAnimation<Color>(
                 Color(int.parse(_selectedColor.replaceFirst('#', '0xFF'))),
               ),
