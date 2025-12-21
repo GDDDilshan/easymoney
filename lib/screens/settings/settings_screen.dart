@@ -10,6 +10,7 @@ import '../../utils/theme.dart';
 import '../../utils/constants.dart';
 import '../../widgets/custom_button.dart';
 import '../../screens/auth/login_screen.dart';
+import '../reports/export_report_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -47,93 +48,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildHeader(),
                 _buildProfileCard(authProvider),
                 const SizedBox(height: 20),
-                _buildSettingsSection(
-                  'Preferences',
-                  [
-                    _buildSettingItem(
-                      'Currency',
-                      'Current: ${authProvider.selectedCurrency}',
-                      Iconsax.dollar_circle,
-                      trailing: _buildCurrencySelector(authProvider),
+                _buildSettingsSection('Preferences', [
+                  _buildSettingItem(
+                    'Currency',
+                    'Current: ${authProvider.selectedCurrency}',
+                    Iconsax.dollar_circle,
+                    trailing: _buildCurrencySelector(authProvider),
+                  ),
+                  _buildSettingItem(
+                    'Theme',
+                    themeProvider.isDarkMode ? 'Dark mode' : 'Light mode',
+                    Iconsax.brush,
+                    trailing: Switch(
+                      value: themeProvider.isDarkMode,
+                      onChanged: (_) => themeProvider.toggleTheme(),
+                      activeColor: AppTheme.primaryGreen,
                     ),
-                    _buildSettingItem(
-                      'Theme',
-                      themeProvider.isDarkMode ? 'Dark mode' : 'Light mode',
-                      Iconsax.brush,
-                      trailing: Switch(
-                        value: themeProvider.isDarkMode,
-                        onChanged: (_) => themeProvider.toggleTheme(),
-                        activeColor: AppTheme.primaryGreen,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ]),
                 const SizedBox(height: 16),
-                _buildSettingsSection(
-                  'Security',
-                  [
-                    _buildSettingItem(
-                      'Change Password',
-                      'Update your password',
-                      Iconsax.lock,
-                      onTap: () => _showChangePasswordDialog(authProvider),
-                    ),
-                  ],
-                ),
+                _buildSettingsSection('Reports & Export', [
+                  _buildSettingItem(
+                    'Generate Financial Report',
+                    'Export PDF with all financial data',
+                    Iconsax.export,
+                    onTap: () => _navigateToExportReport(),
+                  ),
+                ]),
                 const SizedBox(height: 16),
-                _buildSettingsSection(
-                  'Notifications',
-                  [
-                    _buildSettingItem(
-                      'Push Notifications',
-                      'Receive budget and goal alerts',
-                      Iconsax.notification,
-                      trailing: Switch(
-                        value: authProvider.userModel?.notificationsEnabled ??
-                            true,
-                        onChanged: (value) {
-                          if (authProvider.userModel != null) {
-                            final updatedUser =
-                                authProvider.userModel!.copyWith(
-                              notificationsEnabled: value,
-                            );
-                            authProvider.updateUserProfile(updatedUser);
-                          }
-                        },
-                        activeColor: AppTheme.primaryGreen,
-                      ),
-                    ),
-                    _buildSettingItem(
-                      'Email Notifications',
-                      'Get monthly reports via email',
-                      Iconsax.sms,
-                      trailing: Switch(
-                        value: authProvider.userModel?.emailAlerts ?? true,
-                        onChanged: (value) {
-                          if (authProvider.userModel != null) {
-                            final updatedUser =
-                                authProvider.userModel!.copyWith(
-                              emailAlerts: value,
-                            );
-                            authProvider.updateUserProfile(updatedUser);
-                          }
-                        },
-                        activeColor: AppTheme.primaryGreen,
-                      ),
-                    ),
-                  ],
-                ),
+                _buildSettingsSection('Security', [
+                  _buildSettingItem(
+                    'Change Password',
+                    'Update your password',
+                    Iconsax.lock,
+                    onTap: () => _showChangePasswordDialog(authProvider),
+                  ),
+                ]),
                 const SizedBox(height: 16),
-                _buildSettingsSection(
-                  'About',
-                  [
-                    _buildSettingItem(
-                      'App Version',
-                      '1.0.0',
-                      Iconsax.info_circle,
-                    ),
-                  ],
-                ),
+                _buildSettingsSection('About', [
+                  _buildSettingItem(
+                    'App Version',
+                    '1.0.0',
+                    Iconsax.info_circle,
+                  ),
+                ]),
                 const SizedBox(height: 32),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -173,10 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2, end: 0),
               Text(
                 'Manage your preferences',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
+                style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
               ).animate().fadeIn(delay: 200.ms),
             ],
           ),
@@ -332,11 +287,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                icon,
-                color: AppTheme.primaryGreen,
-                size: 22,
-              ),
+              child: Icon(icon, color: AppTheme.primaryGreen, size: 22),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -352,10 +303,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   Text(
                     subtitle,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      color: Colors.grey,
-                    ),
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey),
                   ),
                 ],
               ),
@@ -374,7 +322,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // UPDATED: Shows currency with symbol in dropdown
   Widget _buildCurrencySelector(AuthProvider authProvider) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -405,10 +352,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         onChanged: (value) {
           if (value != null) {
             authProvider.updateCurrency(value);
-            Helpers.showSnackBar(
-              context,
-              'Currency changed to $value',
-            );
+            Helpers.showSnackBar(context, 'Currency changed to $value');
           }
         },
       ),
@@ -483,8 +427,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Text(
             'Change Password',
             style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
@@ -509,8 +454,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             : Icons.visibility_outlined,
                       ),
                       onPressed: () {
-                        setState(() =>
-                            obscureCurrentPassword = !obscureCurrentPassword);
+                        setState(
+                          () =>
+                              obscureCurrentPassword = !obscureCurrentPassword,
+                        );
                       },
                     ),
                   ),
@@ -533,7 +480,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       onPressed: () {
                         setState(
-                            () => obscureNewPassword = !obscureNewPassword);
+                          () => obscureNewPassword = !obscureNewPassword,
+                        );
                       },
                     ),
                   ),
@@ -555,8 +503,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             : Icons.visibility_outlined,
                       ),
                       onPressed: () {
-                        setState(() =>
-                            obscureConfirmPassword = !obscureConfirmPassword);
+                        setState(
+                          () =>
+                              obscureConfirmPassword = !obscureConfirmPassword,
+                        );
                       },
                     ),
                   ),
@@ -572,32 +522,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextButton(
               onPressed: () async {
                 if (currentPasswordController.text.isEmpty) {
-                  Helpers.showSnackBar(context, 'Please enter current password',
-                      isError: true);
+                  Helpers.showSnackBar(
+                    context,
+                    'Please enter current password',
+                    isError: true,
+                  );
                   return;
                 }
                 if (newPasswordController.text.isEmpty) {
-                  Helpers.showSnackBar(context, 'Please enter new password',
-                      isError: true);
+                  Helpers.showSnackBar(
+                    context,
+                    'Please enter new password',
+                    isError: true,
+                  );
                   return;
                 }
                 if (newPasswordController.text.length < 6) {
                   Helpers.showSnackBar(
-                      context, 'Password must be at least 6 characters',
-                      isError: true);
+                    context,
+                    'Password must be at least 6 characters',
+                    isError: true,
+                  );
                   return;
                 }
                 if (newPasswordController.text !=
                     confirmPasswordController.text) {
-                  Helpers.showSnackBar(context, 'Passwords do not match',
-                      isError: true);
+                  Helpers.showSnackBar(
+                    context,
+                    'Passwords do not match',
+                    isError: true,
+                  );
                   return;
                 }
                 if (currentPasswordController.text ==
                     newPasswordController.text) {
                   Helpers.showSnackBar(
-                      context, 'New password must be different from current',
-                      isError: true);
+                    context,
+                    'New password must be different from current',
+                    isError: true,
+                  );
                   return;
                 }
 
@@ -610,7 +573,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (mounted) {
                     Navigator.pop(context);
                     Helpers.showSnackBar(
-                        context, 'Password changed successfully');
+                      context,
+                      'Password changed successfully',
+                    );
                   }
                 } catch (e) {
                   if (mounted) {
@@ -629,6 +594,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _navigateToExportReport() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ExportReportScreen()),
     );
   }
 
