@@ -330,24 +330,32 @@ class NotificationPanel extends StatelessWidget {
     NotificationModel notification,
     NotificationProvider provider,
   ) async {
-    // Delete notification immediately (not just mark as read)
+    // Delete notification immediately
     await provider.deleteNotification(notification.id!);
 
+    // Get the navigator before closing the sheet
+    final navigator = Navigator.of(context);
+
     // Close notification panel
-    Navigator.pop(context);
+    navigator.pop();
+
+    // Wait for panel to close
+    await Future.delayed(const Duration(milliseconds: 200));
 
     // Navigate to related screen
-    if (notification.relatedScreen != null) {
+    if (notification.relatedScreen != null && context.mounted) {
       switch (notification.relatedScreen) {
         case 'budget':
-          Navigator.of(context).pushReplacement(
+          // Navigate to Budget tab (index 2)
+          navigator.pushReplacement(
             MaterialPageRoute(
               builder: (_) => const DashboardScreen(initialIndex: 2),
             ),
           );
           break;
         case 'goals':
-          Navigator.of(context).pushReplacement(
+          // Navigate to Goals tab (index 3)
+          navigator.pushReplacement(
             MaterialPageRoute(
               builder: (_) => const DashboardScreen(initialIndex: 3),
             ),
@@ -367,14 +375,6 @@ class NotificationPanel extends StatelessWidget {
         return const LinearGradient(
           colors: [Color(0xFFEF4444), Color(0xFFF97316)],
         );
-      case NotificationType.goalCompleted:
-        return const LinearGradient(
-          colors: [Color(0xFF10B981), Color(0xFF14B8A6)],
-        );
-      case NotificationType.goalNearTarget:
-        return const LinearGradient(
-          colors: [Color(0xFF3B82F6), Color(0xFF06B6D4)],
-        );
       case NotificationType.recurringDue:
         return const LinearGradient(
           colors: [Color(0xFF8B5CF6), Color(0xFFA855F7)],
@@ -388,10 +388,6 @@ class NotificationPanel extends StatelessWidget {
         return const Color(0xFFF59E0B);
       case NotificationType.budgetExceeded:
         return const Color(0xFFEF4444);
-      case NotificationType.goalCompleted:
-        return const Color(0xFF10B981);
-      case NotificationType.goalNearTarget:
-        return const Color(0xFF3B82F6);
       case NotificationType.recurringDue:
         return const Color(0xFF8B5CF6);
     }
@@ -403,10 +399,6 @@ class NotificationPanel extends StatelessWidget {
         return Iconsax.warning_2;
       case NotificationType.budgetExceeded:
         return Iconsax.danger;
-      case NotificationType.goalCompleted:
-        return Iconsax.cup;
-      case NotificationType.goalNearTarget:
-        return Iconsax.chart_21;
       case NotificationType.recurringDue:
         return Iconsax.clock;
     }

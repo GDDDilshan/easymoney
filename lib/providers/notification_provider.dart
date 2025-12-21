@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 import '../services/auth_service.dart';
@@ -11,8 +10,7 @@ class NotificationProvider with ChangeNotifier {
   bool _isLoading = false;
 
   List<NotificationModel> get notifications => _notifications;
-  int get unreadCount =>
-      _notifications.length; // All notifications count as "unread"
+  int get unreadCount => _notifications.length;
   bool get hasUnread => _notifications.isNotEmpty;
   bool get isLoading => _isLoading;
 
@@ -22,9 +20,14 @@ class NotificationProvider with ChangeNotifier {
 
   void _initService() {
     final userId = _authService.currentUser?.uid;
+    debugPrint('🔧 Initializing NotificationService for user: $userId');
+
     if (userId != null) {
       _notificationService = NotificationService(userId);
       loadNotifications();
+      debugPrint('✅ NotificationService initialized');
+    } else {
+      debugPrint('❌ No user logged in, NotificationService not initialized');
     }
   }
 
@@ -75,7 +78,6 @@ class NotificationProvider with ChangeNotifier {
   Future<void> deleteAllNotifications() async {
     if (_notificationService == null) return;
     try {
-      final batch = FirebaseFirestore.instance.batch();
       for (var notification in _notifications) {
         if (notification.id != null) {
           await _notificationService!.deleteNotification(notification.id!);
@@ -86,7 +88,7 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
-  // Helper method to create notifications - ONLY FOR CURRENT MONTH
+  // ONLY METHOD FOR BUDGET NOTIFICATIONS
   Future<void> checkAndCreateNotifications({
     required double spent,
     required double limit,
@@ -96,7 +98,10 @@ class NotificationProvider with ChangeNotifier {
     required int budgetMonth,
     required int budgetYear,
   }) async {
-    if (_notificationService == null) return;
+    if (_notificationService == null) {
+      debugPrint('❌ NotificationService is null');
+      return;
+    }
 
     final now = DateTime.now();
 
@@ -108,79 +113,62 @@ class NotificationProvider with ChangeNotifier {
 
     final percentage = (spent / limit * 100);
 
+    debugPrint('🔍 Checking budget notifications:');
+    debugPrint('   Category: $category');
+    debugPrint('   Spent: \$${spent.toStringAsFixed(2)}');
+    debugPrint('   Limit: \$${limit.toStringAsFixed(2)}');
+    debugPrint('   Percentage: ${percentage.toStringAsFixed(1)}%');
+    debugPrint('   Threshold: $threshold%');
+
     // Check if already exceeded
     if (spent > limit) {
-      // Check if we already sent this notification
+      debugPrint('🚨 BUDGET EXCEEDED! Creating notification...');
+
       final hasExceededNotif = _notifications.any((n) =>
           n.type == NotificationType.budgetExceeded && n.relatedId == budgetId);
 
       if (!hasExceededNotif) {
-        await _notificationService!.createBudgetExceeded(
-          category: category,
-          spent: spent,
-          limit: limit,
-          budgetId: budgetId,
-        );
+        debugPrint('✅ Creating budget exceeded notification');
+        try {
+          await _notificationService!.createBudgetExceeded(
+            category: category,
+            spent: spent,
+            limit: limit,
+            budgetId: budgetId,
+          );
+          debugPrint('✅ Budget exceeded notification created successfully');
+        } catch (e) {
+          debugPrint('❌ Error creating notification: $e');
+        }
+      } else {
+        debugPrint('⚠️ Budget exceeded notification already exists');
       }
     } else if (percentage >= threshold) {
-      // Check if we already sent this notification
+      debugPrint('⚠️ BUDGET WARNING! Creating notification...');
+
       final hasWarningNotif = _notifications.any((n) =>
           n.type == NotificationType.budgetWarning && n.relatedId == budgetId);
 
       if (!hasWarningNotif) {
-        await _notificationService!.createBudgetWarning(
-          category: category,
-          spent: spent,
-          limit: limit,
-          threshold: threshold,
-          budgetId: budgetId,
-        );
+        debugPrint('✅ Creating budget warning notification');
+        try {
+          await _notificationService!.createBudgetWarning(
+            category: category,
+            spent: spent,
+            limit: limit,
+            threshold: threshold,
+            budgetId: budgetId,
+          );
+          debugPrint('✅ Budget warning notification created successfully');
+        } catch (e) {
+          debugPrint('❌ Error creating notification: $e');
+        }
+      } else {
+        debugPrint('⚠️ Budget warning notification already exists');
       }
-    }
-  }
-
-  Future<void> checkGoalNotifications({
-    required String goalName,
-    required double currentAmount,
-    required double targetAmount,
-    required String goalId,
-    required DateTime targetDate,
-  }) async {
-    if (_notificationService == null) return;
-
-    // ONLY create notifications for goals with future or current target dates
-    if (targetDate.isBefore(DateTime.now())) {
-      debugPrint('⏭️ Skipping notification - Goal target date has passed');
-      return;
-    }
-
-    final percentage = (currentAmount / targetAmount * 100);
-
-    // Goal completed
-    if (currentAmount >= targetAmount) {
-      final hasCompletedNotif = _notifications.any((n) =>
-          n.type == NotificationType.goalCompleted && n.relatedId == goalId);
-
-      if (!hasCompletedNotif) {
-        await _notificationService!.createGoalCompleted(
-          goalName: goalName,
-          targetAmount: targetAmount,
-          goalId: goalId,
-        );
-      }
-    } else if (percentage >= 90) {
-      // Near target (90%)
-      final hasNearTargetNotif = _notifications.any((n) =>
-          n.type == NotificationType.goalNearTarget && n.relatedId == goalId);
-
-      if (!hasNearTargetNotif) {
-        await _notificationService!.createGoalNearTarget(
-          goalName: goalName,
-          currentAmount: currentAmount,
-          targetAmount: targetAmount,
-          goalId: goalId,
-        );
-      }
+    } else {
+      debugPrint(
+          '✅ Budget is within safe limits (${percentage.toStringAsFixed(1)}%)');
     }
   }
 }

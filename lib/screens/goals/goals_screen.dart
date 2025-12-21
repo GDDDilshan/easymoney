@@ -23,31 +23,6 @@ class _GoalsScreenState extends State<GoalsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  void _checkGoalNotifications(BuildContext context) {
-    final goalProvider = Provider.of<GoalProvider>(context, listen: false);
-    final notificationProvider =
-        Provider.of<NotificationProvider>(context, listen: false);
-
-    for (var goal in goalProvider.goals) {
-      notificationProvider.checkGoalNotifications(
-        goalName: goal.name,
-        currentAmount: goal.currentAmount,
-        targetAmount: goal.targetAmount,
-        goalId: goal.id!,
-        targetDate: goal.targetDate, // NEW
-      );
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkGoalNotifications(context);
-    });
-  }
-
   @override
   void dispose() {
     _tabController.dispose();
@@ -552,21 +527,6 @@ class _GoalsScreenState extends State<GoalsScreen>
               if (amount != null && amount > 0) {
                 await Provider.of<GoalProvider>(context, listen: false)
                     .addContribution(goal.id!, amount);
-
-                // Check goal notifications with targetDate
-                final notificationProvider = Provider.of<NotificationProvider>(
-                  context,
-                  listen: false,
-                );
-
-                final newAmount = goal.currentAmount + amount;
-                await notificationProvider.checkGoalNotifications(
-                  goalName: goal.name,
-                  currentAmount: newAmount,
-                  targetAmount: goal.targetAmount,
-                  goalId: goal.id!,
-                  targetDate: goal.targetDate, // NEW
-                );
 
                 if (context.mounted) {
                   Navigator.pop(context);

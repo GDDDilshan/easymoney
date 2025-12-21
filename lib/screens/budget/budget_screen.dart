@@ -44,21 +44,21 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
         final spent = budgetCategorySpending[budget.category] ?? 0;
 
-        // Check and create notifications - WITH MONTH/YEAR PARAMS
+        // Check and create notifications
         notificationProvider.checkAndCreateNotifications(
           spent: spent,
           limit: budget.monthlyLimit,
           category: budget.category,
           threshold: budget.alertThreshold,
           budgetId: budget.id!,
-          budgetMonth: budget.month, // NEW
-          budgetYear: budget.year, // NEW
+          budgetMonth: budget.month,
+          budgetYear: budget.year,
         );
       }
     }
   }
 
-  // REPLACE the existing initState with this:
+// Call this method in initState:
   @override
   void initState() {
     super.initState();

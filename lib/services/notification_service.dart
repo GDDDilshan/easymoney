@@ -112,45 +112,10 @@ class NotificationService {
     final notification = NotificationModel(
       title: '🚨 Budget Exceeded: $category',
       message:
-          'You\'ve exceeded your $category budget! Spent: \$${spent.toStringAsFixed(2)} / Limit: \$${limit.toStringAsFixed(2)}',
+          'You\'ve exceeded your $category budget! Spent: \${spent.toStringAsFixed(2)} / Limit: \${limit.toStringAsFixed(2)}',
       type: NotificationType.budgetExceeded,
       relatedId: budgetId,
       relatedScreen: 'budget',
-    );
-    await addNotification(notification);
-  }
-
-  // Create goal completed notification
-  Future<void> createGoalCompleted({
-    required String goalName,
-    required double targetAmount,
-    required String goalId,
-  }) async {
-    final notification = NotificationModel(
-      title: '🎉 Goal Achieved!',
-      message:
-          'Congratulations! You\'ve completed your goal "$goalName" (\$${targetAmount.toStringAsFixed(2)})',
-      type: NotificationType.goalCompleted,
-      relatedId: goalId,
-      relatedScreen: 'goals',
-    );
-    await addNotification(notification);
-  }
-
-  // Create goal near target notification
-  Future<void> createGoalNearTarget({
-    required String goalName,
-    required double currentAmount,
-    required double targetAmount,
-    required String goalId,
-  }) async {
-    final notification = NotificationModel(
-      title: '🎯 Almost There!',
-      message:
-          'You\'re ${(currentAmount / targetAmount * 100).toStringAsFixed(0)}% towards your "$goalName" goal. Keep it up!',
-      type: NotificationType.goalNearTarget,
-      relatedId: goalId,
-      relatedScreen: 'goals',
     );
     await addNotification(notification);
   }

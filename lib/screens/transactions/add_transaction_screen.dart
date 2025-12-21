@@ -52,8 +52,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           category: budget.category,
           threshold: budget.alertThreshold,
           budgetId: budget.id!,
-          budgetMonth: budget.month, // NEW
-          budgetYear: budget.year, // NEW
+          budgetMonth: budget.month,
+          budgetYear: budget.year,
         );
       }
     }

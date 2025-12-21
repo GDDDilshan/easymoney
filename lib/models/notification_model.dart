@@ -3,8 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 enum NotificationType {
   budgetWarning,
   budgetExceeded,
-  goalCompleted,
-  goalNearTarget,
   recurringDue,
 }
 
@@ -60,10 +58,6 @@ class NotificationModel {
         return NotificationType.budgetWarning;
       case 'NotificationType.budgetExceeded':
         return NotificationType.budgetExceeded;
-      case 'NotificationType.goalCompleted':
-        return NotificationType.goalCompleted;
-      case 'NotificationType.goalNearTarget':
-        return NotificationType.goalNearTarget;
       case 'NotificationType.recurringDue':
         return NotificationType.recurringDue;
       default:

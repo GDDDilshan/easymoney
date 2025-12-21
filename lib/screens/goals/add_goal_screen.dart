@@ -610,21 +610,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
       }
 
       if (mounted) {
-        final notificationProvider = Provider.of<NotificationProvider>(
-          context,
-          listen: false,
-        );
-
-        await notificationProvider.checkGoalNotifications(
-          goalName: goal.name,
-          currentAmount: goal.currentAmount,
-          targetAmount: goal.targetAmount,
-          goalId: goal.id ?? widget.goal?.id ?? '',
-          targetDate: goal.targetDate, // NEW
-        );
-      }
-
-      if (mounted) {
         Navigator.pop(context);
       }
     } catch (e) {
