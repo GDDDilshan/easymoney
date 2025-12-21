@@ -714,10 +714,24 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+        // FIXED: Better background colors
+        gradient: Theme.of(context).brightness == Brightness.dark
+            ? LinearGradient(
+                colors: [
+                  const Color(0xFF1E293B),
+                  const Color(0xFF1E293B).withValues(alpha: 0.95),
+                ],
+              )
+            : null,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? null
+            : AppTheme.primaryGreen.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+          color: AppTheme.primaryGreen.withValues(
+            alpha: Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.3,
+          ),
+          width: 2,
         ),
       ),
       child: Column(
@@ -756,6 +770,8 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
   }
 
   Widget _buildSummaryRow(String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -765,7 +781,11 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
             label,
             style: GoogleFonts.inter(
               fontSize: 13,
-              color: Colors.grey.shade700,
+              // FIXED: Much lighter text for dark mode
+              color: isDark
+                  ? const Color(0xFF94A3B8) // Light gray
+                  : Colors.grey.shade700,
+              fontWeight: FontWeight.w500,
             ),
           ),
           Text(
@@ -773,7 +793,10 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
             style: GoogleFonts.inter(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Colors.grey.shade900,
+              // FIXED: Bright text for dark mode
+              color: isDark
+                  ? const Color(0xFFF1F5F9) // Almost white
+                  : Colors.grey.shade900,
             ),
           ),
         ],
