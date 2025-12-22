@@ -39,9 +39,10 @@ class NotificationProvider with ChangeNotifier {
         _notifications = notifications;
         _isLoading = false;
         notifyListeners();
+        debugPrint('📬 Loaded ${_notifications.length} notifications');
       },
       onError: (error) {
-        debugPrint('Error loading notifications: $error');
+        debugPrint('❌ Error loading notifications: $error');
         _isLoading = false;
         notifyListeners();
       },
@@ -53,7 +54,7 @@ class NotificationProvider with ChangeNotifier {
     try {
       await _notificationService!.markAsRead(notificationId);
     } catch (e) {
-      debugPrint('Error marking notification as read: $e');
+      debugPrint('❌ Error marking notification as read: $e');
     }
   }
 
@@ -62,29 +63,58 @@ class NotificationProvider with ChangeNotifier {
     try {
       await _notificationService!.markAllAsRead();
     } catch (e) {
-      debugPrint('Error marking all as read: $e');
+      debugPrint('❌ Error marking all as read: $e');
     }
   }
 
+  // FIXED: Delete notification with proper error handling and verification
   Future<void> deleteNotification(String notificationId) async {
-    if (_notificationService == null) return;
+    if (_notificationService == null) {
+      debugPrint('❌ NotificationService is null, cannot delete');
+      return;
+    }
+
+    debugPrint('🗑️ Provider: Deleting notification $notificationId');
+
     try {
+      // Delete from Firestore
       await _notificationService!.deleteNotification(notificationId);
+      debugPrint('✅ Provider: Notification deleted from Firestore');
+
+      // Remove from local list immediately (optimistic update)
+      _notifications.removeWhere((n) => n.id == notificationId);
+      notifyListeners();
+      debugPrint(
+          '✅ Provider: Local list updated, ${_notifications.length} notifications remaining');
     } catch (e) {
-      debugPrint('Error deleting notification: $e');
+      debugPrint('❌ Provider: Error deleting notification: $e');
+      rethrow;
     }
   }
 
   Future<void> deleteAllNotifications() async {
     if (_notificationService == null) return;
+
+    debugPrint(
+        '🗑️ Provider: Deleting all notifications (${_notifications.length} total)');
+
     try {
-      for (var notification in _notifications) {
-        if (notification.id != null) {
-          await _notificationService!.deleteNotification(notification.id!);
-        }
+      final notificationIds =
+          _notifications.where((n) => n.id != null).map((n) => n.id!).toList();
+
+      debugPrint('   Notification IDs to delete: $notificationIds');
+
+      for (var notificationId in notificationIds) {
+        await _notificationService!.deleteNotification(notificationId);
       }
+
+      // Clear local list
+      _notifications.clear();
+      notifyListeners();
+      debugPrint('✅ Provider: All notifications deleted');
     } catch (e) {
-      debugPrint('Error deleting all notifications: $e');
+      debugPrint('❌ Provider: Error deleting all notifications: $e');
+      rethrow;
     }
   }
 
@@ -115,15 +145,16 @@ class NotificationProvider with ChangeNotifier {
 
     debugPrint('🔍 Checking budget notifications:');
     debugPrint('   Category: $category');
-    debugPrint('   Spent: \$${spent.toStringAsFixed(2)}');
-    debugPrint('   Limit: \$${limit.toStringAsFixed(2)}');
+    debugPrint('   Spent: \${spent.toStringAsFixed(2)}');
+    debugPrint('   Limit: \${limit.toStringAsFixed(2)}');
     debugPrint('   Percentage: ${percentage.toStringAsFixed(1)}%');
     debugPrint('   Threshold: $threshold%');
 
     // Check if already exceeded
     if (spent > limit) {
-      debugPrint('🚨 BUDGET EXCEEDED! Creating notification...');
+      debugPrint('🚨 BUDGET EXCEEDED! Checking for existing notification...');
 
+      // FIXED: Check by budgetId AND type to prevent duplicates
       final hasExceededNotif = _notifications.any((n) =>
           n.type == NotificationType.budgetExceeded && n.relatedId == budgetId);
 
@@ -141,11 +172,13 @@ class NotificationProvider with ChangeNotifier {
           debugPrint('❌ Error creating notification: $e');
         }
       } else {
-        debugPrint('⚠️ Budget exceeded notification already exists');
+        debugPrint(
+            '⏭️ Budget exceeded notification already exists for this budget');
       }
     } else if (percentage >= threshold) {
-      debugPrint('⚠️ BUDGET WARNING! Creating notification...');
+      debugPrint('⚠️ BUDGET WARNING! Checking for existing notification...');
 
+      // FIXED: Check by budgetId AND type to prevent duplicates
       final hasWarningNotif = _notifications.any((n) =>
           n.type == NotificationType.budgetWarning && n.relatedId == budgetId);
 
@@ -164,7 +197,8 @@ class NotificationProvider with ChangeNotifier {
           debugPrint('❌ Error creating notification: $e');
         }
       } else {
-        debugPrint('⚠️ Budget warning notification already exists');
+        debugPrint(
+            '⏭️ Budget warning notification already exists for this budget');
       }
     } else {
       debugPrint(

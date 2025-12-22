@@ -22,7 +22,19 @@ class BudgetScreen extends StatefulWidget {
 }
 
 class _BudgetScreenState extends State<BudgetScreen> {
+  // CRITICAL: Static variable to track if we've EVER checked notifications
+  static bool _hasEverCheckedNotifications = false;
+
   void _checkBudgetNotifications(BuildContext context) {
+    // FIXED: Only check ONCE per app session, never again
+    if (_hasEverCheckedNotifications) {
+      debugPrint(
+          '⏭️ Skipping notification check - already checked this session');
+      return;
+    }
+
+    debugPrint('🔍 Starting budget notification check...');
+
     final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
     final transactionProvider =
         Provider.of<TransactionProvider>(context, listen: false);
@@ -56,15 +68,24 @@ class _BudgetScreenState extends State<BudgetScreen> {
         );
       }
     }
+
+    // Mark as checked FOREVER for this app session
+    _hasEverCheckedNotifications = true;
+    debugPrint(
+        '✅ Budget notifications checked - will NOT check again this session');
   }
 
-// Call this method in initState:
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkBudgetNotifications(context);
-    });
+    // ONLY check notifications once on very first init
+    if (!_hasEverCheckedNotifications) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _checkBudgetNotifications(context);
+        }
+      });
+    }
   }
 
   @override

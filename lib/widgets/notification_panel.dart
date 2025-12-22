@@ -327,24 +327,55 @@ class NotificationPanel extends StatelessWidget {
     );
   }
 
-  // FIXED v4: Close panel FIRST, then navigate
+  // FIXED v7: Delete with delay to ensure Firestore completes
   void _handleNotificationTap(
     BuildContext context,
     NotificationModel notification,
     NotificationProvider provider,
   ) async {
     debugPrint('🔔 Notification tapped: ${notification.title}');
+    debugPrint('   Notification ID: ${notification.id}');
 
-    // STEP 1: Close notification panel IMMEDIATELY
-    Navigator.of(context).pop();
-    debugPrint('✅ Panel closed');
+    if (notification.id == null) {
+      debugPrint('❌ ERROR: Notification ID is null!');
+      if (context.mounted) {
+        Helpers.showSnackBar(
+          context,
+          'Error: Cannot delete notification',
+          isError: true,
+        );
+      }
+      return;
+    }
 
-    // STEP 2: Wait for panel to close
+    // STEP 1: Delete notification FIRST and WAIT for completion
+    try {
+      await provider.deleteNotification(notification.id!);
+      debugPrint('✅ Notification deleted successfully');
+
+      // IMPORTANT: Wait for Firestore to process the delete
+      await Future.delayed(const Duration(milliseconds: 200));
+      debugPrint('✅ Waited for Firestore processing');
+    } catch (e) {
+      debugPrint('❌ Error deleting notification: $e');
+      if (context.mounted) {
+        Helpers.showSnackBar(
+          context,
+          'Error deleting notification: $e',
+          isError: true,
+        );
+      }
+      return;
+    }
+
+    // STEP 2: Close notification panel
+    if (context.mounted) {
+      Navigator.of(context).pop();
+      debugPrint('✅ Panel closed');
+    }
+
+    // STEP 3: Wait for panel close animation
     await Future.delayed(const Duration(milliseconds: 100));
-
-    // STEP 3: Delete notification
-    await provider.deleteNotification(notification.id!);
-    debugPrint('✅ Notification deleted');
 
     // STEP 4: Navigate to Budget tab
     if (onNavigateToBudget != null) {
@@ -352,12 +383,12 @@ class NotificationPanel extends StatelessWidget {
       onNavigateToBudget!();
       debugPrint('✅ Budget navigation callback executed');
 
-      // STEP 5: Show confirmation AFTER navigation
+      // STEP 5: Show confirmation
       await Future.delayed(const Duration(milliseconds: 100));
       if (context.mounted) {
         Helpers.showSnackBar(
           context,
-          '📊 Check your Budget screen',
+          '📊 Navigated to Budget screen',
         );
       }
     } else {
