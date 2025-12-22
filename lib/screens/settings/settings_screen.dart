@@ -367,16 +367,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 16),
 
-          // App Version
-          Text(
-            'Version 1.0.0',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: Colors.grey.shade500,
-            ),
-          ),
-          const SizedBox(height: 8),
-
           // Footer Text with Brand
           RichText(
             textAlign: TextAlign.center,
@@ -387,7 +377,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 height: 1.5,
               ),
               children: [
-                const TextSpan(text: 'Made with '),
+                const TextSpan(text: 'Crafted with '),
                 TextSpan(
                   text: '❤️',
                   style: TextStyle(color: Colors.red.shade400),
@@ -403,11 +393,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
 
-          // Copyright
+          // Copyright without year
           Text(
-            '© ${DateTime.now().year} Clootec. All rights reserved.',
+            'All rights reserved',
             style: GoogleFonts.inter(
               fontSize: 11,
               color: Colors.grey.shade500,
