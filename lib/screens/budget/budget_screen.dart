@@ -254,36 +254,90 @@ class _BudgetScreenState extends State<BudgetScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Total Budget',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: Colors.white.withValues(alpha: 0.9),
-                ),
+              // ✅ Enhanced "Total Budget" label with icon
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Iconsax.tick_circle,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Total Budget',
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
               ),
+              // ✅ Enhanced month badge with premium styling
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark
+                      ? const Color(0xFF0F172A) // Deep black for dark mode
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isOverBudget
+                        ? Colors.red.withValues(alpha: 0.3)
+                        : Colors.white.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
+                      color: Colors.black.withValues(alpha: 0.2),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: Text(
-                  Helpers.getMonthName(now.month),
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: isOverBudget
-                        ? const Color(0xFFEF4444)
-                        : AppTheme.primaryGreen,
-                    fontWeight: FontWeight.w700,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Iconsax.calendar,
+                      size: 14,
+                      color: isDark
+                          ? (isOverBudget
+                              ? const Color(0xFFFF6B6B) // Brighter red for dark
+                              : const Color(
+                                  0xFF34D399)) // Brighter green for dark
+                          : (isOverBudget
+                              ? const Color(0xFFEF4444)
+                              : AppTheme.primaryGreen),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      Helpers.getMonthName(now.month),
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: isDark
+                            ? (isOverBudget
+                                ? const Color(
+                                    0xFFFF6B6B) // Brighter red for dark
+                                : const Color(
+                                    0xFF34D399)) // Brighter green for dark
+                            : (isOverBudget
+                                ? const Color(0xFFEF4444)
+                                : AppTheme.primaryGreen),
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
