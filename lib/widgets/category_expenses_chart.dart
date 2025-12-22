@@ -1,3 +1,6 @@
+// FILE: lib/widgets/category_expenses_chart.dart
+// FIXED VERSION - Dark theme calendar date picker now clearly visible
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -71,7 +74,7 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
     }
   }
 
-  // ✅ FIXED: Dark theme calendar with clearly visible selected dates
+  // ✅ FIXED: Dark theme calendar with premium orange color and BLACK text on selected dates
   Future<DateTimeRange?> showDateRangeDialog({
     required BuildContext context,
     required DateTimeRange initialDateRange,
@@ -88,31 +91,33 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            // ✅ FIXED: Complete ColorScheme with all necessary colors
+            // ✅ FIXED: Premium orange color scheme with BLACK text on selected dates
             colorScheme: isDark
                 ? ColorScheme.dark(
-                    // Primary colors for selected dates
-                    primary: AppTheme.primaryGreen,
-                    onPrimary: Colors.white,
+                    // Primary colors for selected dates - ORANGE!
+                    primary: const Color(0xFFF97316), // Orange-500
+                    onPrimary:
+                        const Color(0xFF0F172A), // BLACK text on orange ✅
 
-                    // ✅ Selected date range background
-                    primaryContainer:
-                        AppTheme.primaryGreen.withValues(alpha: 0.35),
-                    onPrimaryContainer: Colors.white,
+                    // ✅ Selected date range background - Premium Orange Glow
+                    primaryContainer: const Color(0xFFF97316)
+                        .withValues(alpha: 0.3), // Soft orange bg
+                    onPrimaryContainer:
+                        const Color(0xFF0F172A), // BLACK text on orange bg ✅
 
                     // Background colors
                     surface: const Color(0xFF1E293B),
-                    onSurface: const Color(0xFFF1F5F9), // Bright text
+                    onSurface: Colors.white, // BRIGHTEST WHITE for ALL dates ✅
                     background: const Color(0xFF0F172A),
-                    onBackground: const Color(0xFFF1F5F9), // Bright text
+                    onBackground: Colors.white, // BRIGHTEST WHITE ✅
 
                     // ✅ Date cells that are not selected
                     surfaceVariant: const Color(0xFF334155),
-                    onSurfaceVariant: const Color(0xFFE2E8F0),
+                    onSurfaceVariant: Colors.white, // BRIGHTEST WHITE ✅
 
-                    // Secondary colors
-                    secondary: AppTheme.primaryTeal,
-                    onSecondary: Colors.white,
+                    // Secondary colors - Amber accent
+                    secondary: const Color(0xFFFB923C), // Orange-400
+                    onSecondary: const Color(0xFF0F172A), // BLACK text ✅
 
                     // ✅ Outline for date cells
                     outline: const Color(0xFF475569),
@@ -128,88 +133,90 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
                     onSecondary: Colors.white,
                   ),
 
-            // ✅ FIXED: Complete text theme with Google Fonts
+            // ✅ FIXED: Complete text theme with BRIGHT WHITE text for all dates
             textTheme: isDark
                 ? GoogleFonts.interTextTheme(ThemeData.dark().textTheme)
                     .copyWith(
                     // Headers (month/year)
                     displayLarge: GoogleFonts.poppins(
-                      color: const Color(0xFFF1F5F9),
+                      color: Colors.white, // Brightest white
                       fontWeight: FontWeight.bold,
                       fontSize: 32,
                     ),
                     displayMedium: GoogleFonts.poppins(
-                      color: const Color(0xFFF1F5F9),
+                      color: Colors.white, // Brightest white
                       fontWeight: FontWeight.bold,
                       fontSize: 28,
                     ),
                     displaySmall: GoogleFonts.poppins(
-                      color: const Color(0xFFF1F5F9),
+                      color: Colors.white, // Brightest white
                       fontWeight: FontWeight.bold,
                       fontSize: 24,
                     ),
 
                     // Titles
                     headlineLarge: GoogleFonts.poppins(
-                      color: const Color(0xFFF1F5F9),
+                      color: Colors.white, // Brightest white
                       fontWeight: FontWeight.bold,
                       fontSize: 28,
                     ),
                     headlineMedium: GoogleFonts.poppins(
-                      color: const Color(0xFFF1F5F9),
+                      color: Colors.white, // Brightest white
                       fontWeight: FontWeight.w600,
                       fontSize: 20,
                     ),
                     headlineSmall: GoogleFonts.poppins(
-                      color: const Color(0xFFE2E8F0),
+                      color: Colors.white, // Brightest white
                       fontWeight: FontWeight.w600,
                       fontSize: 18,
                     ),
 
-                    // Body text (dates)
+                    // Body text (dates) - BRIGHTEST WHITE
                     titleLarge: GoogleFonts.inter(
-                      color: const Color(0xFFE2E8F0),
+                      color: Colors.white, // Brightest white for dates
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
                     ),
                     titleMedium: GoogleFonts.inter(
-                      color: const Color(0xFFE2E8F0),
+                      color: Colors.white, // Brightest white for dates
                       fontWeight: FontWeight.w500,
                       fontSize: 14,
                     ),
                     titleSmall: GoogleFonts.inter(
-                      color: const Color(0xFFCBD5E1),
+                      color: Colors.white, // Brightest white
                       fontWeight: FontWeight.w500,
                       fontSize: 12,
                     ),
 
-                    // Date numbers
+                    // Date numbers - BRIGHTEST WHITE
                     bodyLarge: GoogleFonts.inter(
-                      color: const Color(0xFFE2E8F0),
+                      color: Colors.white, // Brightest white for dates
                       fontSize: 16,
+                      fontWeight: FontWeight.w500,
                     ),
                     bodyMedium: GoogleFonts.inter(
-                      color: const Color(0xFFCBD5E1),
+                      color: Colors.white, // Brightest white for dates
                       fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                     bodySmall: GoogleFonts.inter(
-                      color: const Color(0xFFA1A9B8),
+                      color: Colors.white, // Brightest white
                       fontSize: 12,
                     ),
 
-                    // Labels (day names: Mon, Tue, Wed, etc.)
+                    // Labels (day names: Mon, Tue, Wed, etc.) - BRIGHTEST WHITE
                     labelLarge: GoogleFonts.inter(
-                      color: const Color(0xFFF1F5F9),
+                      color: Colors.white, // Brightest white
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
                     labelMedium: GoogleFonts.inter(
-                      color: const Color(0xFFE2E8F0),
+                      color: Colors.white, // Brightest white
                       fontWeight: FontWeight.w500,
                       fontSize: 12,
                     ),
                     labelSmall: GoogleFonts.inter(
-                      color: const Color(0xFFCBD5E1),
+                      color: Colors.white, // Brightest white
                       fontSize: 10,
                     ),
                   )
@@ -235,11 +242,11 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
               size: 24,
             ),
 
-            // ✅ Button styles (OK/Cancel)
+            // ✅ Button styles (OK/Cancel) - Orange theme
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor:
-                    isDark ? AppTheme.primaryGreen : AppTheme.primaryGreen,
+                    isDark ? const Color(0xFFF97316) : AppTheme.primaryGreen,
                 textStyle: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
