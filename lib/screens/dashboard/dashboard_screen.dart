@@ -18,6 +18,7 @@ import '../goals/goals_screen.dart';
 import '../settings/settings_screen.dart';
 import '../../widgets/notification_bell.dart';
 import '../../providers/notification_provider.dart';
+import '../../widgets/category_expenses_chart.dart';
 
 class DashboardScreen extends StatefulWidget {
   final int initialIndex;
@@ -37,10 +38,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _selectedIndex = widget.initialIndex;
   }
 
-  // Method to navigate to Budget tab
   void _navigateToBudget() {
     setState(() {
-      _selectedIndex = 2; // Budget is at index 2
+      _selectedIndex = 2;
     });
     debugPrint('✅ Navigated to Budget tab - selectedIndex: $_selectedIndex');
   }
@@ -58,8 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     debugPrint('📱 Dashboard build - selectedIndex: $_selectedIndex');
 
     return Scaffold(
-      body: _screens[
-          _selectedIndex], // CHANGED: Use direct indexing instead of IndexedStack
+      body: _screens[_selectedIndex],
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -178,6 +177,17 @@ class DashboardHome extends StatelessWidget {
                     const SizedBox(height: 24),
                     _buildWeeklyChart(context),
                     const SizedBox(height: 24),
+
+                    // ========================================
+                    // CATEGORY EXPENSES CHART - NEWLY ADDED
+                    // ========================================
+                    const CategoryExpensesChart()
+                        .animate()
+                        .fadeIn(delay: 600.ms)
+                        .slideY(begin: 0.2, end: 0),
+                    // ========================================
+
+                    const SizedBox(height: 24),
                     _buildGoalsSection(context),
                     const SizedBox(height: 24),
                     _buildWeeklyTransactions(context),
@@ -233,8 +243,6 @@ class DashboardHome extends StatelessWidget {
                         .slideX(begin: -0.2, end: 0),
                   ],
                 ),
-
-                // Pass the callback to NotificationBell
                 NotificationBell(
                   onNavigateToBudget: onNavigateToBudget,
                 ).animate().fadeIn(delay: 300.ms).scale(delay: 300.ms),
