@@ -509,10 +509,10 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
           const SizedBox(height: 8),
           Text(
             'No expenses recorded for the selected period',
+            textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 12,
               color: Colors.grey,
-              textAlign: TextAlign.center,
             ),
           ),
         ],
