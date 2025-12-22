@@ -116,12 +116,9 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
     final totalExpenses =
         categorySpending.values.fold<double>(0, (sum, value) => sum + value);
 
-    // Sort by amount descending
+    // FIXED: Get ALL categories with spending (no limit)
     final sortedCategories = categorySpending.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-
-    // Color mapping for chart
-    final chartColors = _getChartColors(sortedCategories.length);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -157,16 +154,15 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
           const SizedBox(height: 24),
 
           // Donut Chart
-          _buildDonutChart(sortedCategories, chartColors, totalExpenses)
+          _buildDonutChart(sortedCategories, totalExpenses)
               .animate()
               .fadeIn(delay: 300.ms)
               .scale(delay: 300.ms),
 
           const SizedBox(height: 28),
 
-          // Category Legend with Details
-          _buildCategoryLegend(
-                  sortedCategories, chartColors, currency, totalExpenses)
+          // FIXED: Show ALL categories with data
+          _buildCategoryLegend(sortedCategories, currency, totalExpenses)
               .animate()
               .fadeIn(delay: 400.ms)
               .slideY(begin: 0.2, end: 0),
@@ -288,8 +284,8 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
     );
   }
 
-  Widget _buildDonutChart(List<MapEntry<String, double>> sortedCategories,
-      List<Color> colors, double totalExpenses) {
+  Widget _buildDonutChart(
+      List<MapEntry<String, double>> sortedCategories, double totalExpenses) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
@@ -305,10 +301,13 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
                   (index) {
                     final entry = sortedCategories[index];
                     final percent = (entry.value / totalExpenses * 100);
+                    // FIXED: Use consistent color from Helpers
+                    final color = Helpers.getCategoryColor(entry.key);
+
                     return PieChartSectionData(
                       value: entry.value,
                       title: '${percent.toStringAsFixed(0)}%',
-                      color: colors[index % colors.length],
+                      color: color,
                       radius: 60,
                       titleStyle: GoogleFonts.inter(
                         fontSize: 13,
@@ -349,44 +348,25 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
 
   Widget _buildCategoryLegend(
     List<MapEntry<String, double>> sortedCategories,
-    List<Color> colors,
     String currency,
     double totalExpenses,
   ) {
     return Column(
       children: [
-        // Show top 5 categories or all if less than 5
-        ...List.generate(
-          sortedCategories.length > 5 ? 5 : sortedCategories.length,
-          (index) {
-            final entry = sortedCategories[index];
-            final percent = (entry.value / totalExpenses * 100);
-            return _buildCategoryRow(
-              category: entry.key,
-              amount: entry.value,
-              percentage: percent,
-              color: colors[index % colors.length],
-              currency: currency,
-            );
-          },
-        ),
-        // Show "Others" if there are more than 5 categories
-        if (sortedCategories.length > 5) ...[
-          const SizedBox(height: 12),
-          _buildCategoryRow(
-            category: 'Others',
-            amount: sortedCategories
-                .skip(5)
-                .fold<double>(0, (sum, entry) => sum + entry.value),
-            percentage: (sortedCategories
-                    .skip(5)
-                    .fold<double>(0, (sum, entry) => sum + entry.value) /
-                totalExpenses *
-                100),
-            color: Colors.grey.shade400,
+        // FIXED: Show ALL categories (no limit to 5)
+        ...sortedCategories.map((entry) {
+          final percent = (entry.value / totalExpenses * 100);
+          // FIXED: Use consistent color from Helpers
+          final color = Helpers.getCategoryColor(entry.key);
+
+          return _buildCategoryRow(
+            category: entry.key,
+            amount: entry.value,
+            percentage: percent,
+            color: color,
             currency: currency,
-          ),
-        ],
+          );
+        }).toList(),
       ],
     );
   }
@@ -533,35 +513,5 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
       default:
         return '30 Days';
     }
-  }
-
-  List<Color> _getChartColors(int count) {
-    const colors = [
-      Color(0xFFF97316), // Orange
-      Color(0xFF3B82F6), // Blue
-      Color(0xFF8B5CF6), // Purple
-      Color(0xFF10B981), // Green
-      Color(0xFFEF4444), // Red
-      Color(0xFFEAB308), // Yellow
-      Color(0xFF14B8A6), // Teal
-      Color(0xFFEC4899), // Pink
-      Color(0xFF06B6D4), // Cyan
-      Color(0xFF6366F1), // Indigo
-    ];
-
-    if (count <= colors.length) {
-      return colors.sublist(0, count);
-    }
-
-    // Generate additional colors by mixing
-    final additionalColors = <Color>[];
-    for (int i = colors.length; i < count; i++) {
-      final baseColor = colors[i % colors.length];
-      additionalColors.add(baseColor.withValues(
-        alpha: 0.7 - ((i - colors.length) * 0.05),
-      ));
-    }
-
-    return [...colors, ...additionalColors];
   }
 }
