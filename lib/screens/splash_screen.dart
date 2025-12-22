@@ -372,17 +372,83 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 50),
 
-                    // Version & Copyright
-                    Text(
-                      'Version 1.0.0',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: Colors.white.withValues(alpha: 0.5),
-                        letterSpacing: 0.5,
-                      ),
-                    ).animate().fadeIn(delay: 2000.ms, duration: 600.ms),
+                    // Premium Branding Footer
+                    Column(
+                      children: [
+                        // "Powered by" text
+                        Text(
+                          'Crafted with ❤️ by',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: Colors.white.withValues(alpha: 0.6),
+                            letterSpacing: 0.8,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        )
+                            .animate()
+                            .fadeIn(delay: 2000.ms, duration: 600.ms)
+                            .slideY(begin: 0.3, end: 0),
+
+                        const SizedBox(height: 8),
+
+                        // Clootec Brand Name with premium styling
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.white.withValues(alpha: 0.15),
+                                Colors.white.withValues(alpha: 0.05),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF10B981)
+                                    .withValues(alpha: 0.3),
+                                blurRadius: 15,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: ShaderMask(
+                            shaderCallback: (bounds) => const LinearGradient(
+                              colors: [
+                                Colors.white,
+                                Color(0xFF10B981),
+                                Color(0xFF06B6D4),
+                              ],
+                            ).createShader(bounds),
+                            child: Text(
+                              'CLOOTEC',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: 3,
+                              ),
+                            ),
+                          ),
+                        )
+                            .animate()
+                            .fadeIn(delay: 2200.ms, duration: 800.ms)
+                            .slideY(begin: 0.3, end: 0)
+                            .shimmer(
+                              delay: 2800.ms,
+                              duration: 1500.ms,
+                              color: Colors.white.withValues(alpha: 0.5),
+                            ),
+                      ],
+                    ),
 
                     const SizedBox(height: 30),
                   ],
