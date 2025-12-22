@@ -563,15 +563,19 @@ class DashboardHome extends StatelessWidget {
     final isIncome = label == 'Income';
     final cardColor =
         isIncome ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ✅ FIXED: Much darker background for dark mode
+        color: isDark
+            ? const Color(0xFF1E293B) // Dark slate instead of white
+            : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -585,7 +589,7 @@ class DashboardHome extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: cardColor.withValues(alpha: 0.1),
+                  color: cardColor.withValues(alpha: isDark ? 0.2 : 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -600,7 +604,10 @@ class DashboardHome extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade600,
+                  // ✅ FIXED: Brighter text for dark mode
+                  color: isDark
+                      ? const Color(0xFFCBD5E1) // Light gray
+                      : Colors.grey.shade600,
                 ),
               ),
             ],
