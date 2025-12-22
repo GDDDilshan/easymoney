@@ -787,28 +787,124 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Text(
-                'Spending by Category',
+                'Spending by Category - Complete Breakdown',
                 style: pw.TextStyle(
                   fontSize: 24,
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
-              pw.SizedBox(height: 16),
+              pw.SizedBox(height: 8),
+              pw.Text(
+                'All expense categories for the selected period',
+                style: pw.TextStyle(
+                  fontSize: 11,
+                  color: PdfColor.fromHex('#666666'),
+                ),
+              ),
+              pw.SizedBox(height: 20),
+
+              // Summary Stats Box
+              pw.Container(
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  color: PdfColor.fromHex('#F0F9FF'),
+                  border: pw.Border.all(
+                      color: PdfColor.fromHex('#10B981'), width: 1),
+                  borderRadius:
+                      const pw.BorderRadius.all(pw.Radius.circular(6)),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+                  children: [
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'Total Categories',
+                          style: pw.TextStyle(
+                              fontSize: 10, color: PdfColor.fromHex('#666666')),
+                        ),
+                        pw.Text(
+                          '${sortedCategories.length}',
+                          style: pw.TextStyle(
+                            fontSize: 16,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColor.fromHex('#10B981'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'Total Expenses',
+                          style: pw.TextStyle(
+                              fontSize: 10, color: PdfColor.fromHex('#666666')),
+                        ),
+                        pw.Text(
+                          '${Helpers.getCurrencySymbol(currency)}${expenses.toStringAsFixed(2)}',
+                          style: pw.TextStyle(
+                            fontSize: 16,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColor.fromHex('#EF4444'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'Average per Category',
+                          style: pw.TextStyle(
+                              fontSize: 10, color: PdfColor.fromHex('#666666')),
+                        ),
+                        pw.Text(
+                          '${Helpers.getCurrencySymbol(currency)}${(expenses / sortedCategories.length).toStringAsFixed(2)}',
+                          style: pw.TextStyle(
+                            fontSize: 16,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColor.fromHex('#6366F1'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 20),
+
+              // Table with ALL categories
               pw.Table(
-                border: pw.TableBorder.all(),
+                border: pw.TableBorder.all(color: PdfColor.fromHex('#DDDDDD')),
                 columnWidths: {
-                  0: const pw.FlexColumnWidth(2),
-                  1: const pw.FlexColumnWidth(1.5),
-                  2: const pw.FlexColumnWidth(1),
+                  0: const pw.FlexColumnWidth(0.5),
+                  1: const pw.FlexColumnWidth(2),
+                  2: const pw.FlexColumnWidth(1.5),
+                  3: const pw.FlexColumnWidth(1.2),
+                  4: const pw.FlexColumnWidth(1),
                 },
                 children: [
+                  // Header Row
                   pw.TableRow(
                     decoration: pw.BoxDecoration(
                       color: PdfColor.fromHex('#10B981'),
                     ),
                     children: [
                       pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
+                        padding: const pw.EdgeInsets.all(10),
+                        child: pw.Text(
+                          'Rank',
+                          style: pw.TextStyle(
+                            color: PdfColors.white,
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(10),
                         child: pw.Text(
                           'Category',
                           style: pw.TextStyle(
@@ -819,7 +915,7 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
                         ),
                       ),
                       pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
+                        padding: const pw.EdgeInsets.all(10),
                         child: pw.Text(
                           'Amount',
                           style: pw.TextStyle(
@@ -830,7 +926,7 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
                         ),
                       ),
                       pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
+                        padding: const pw.EdgeInsets.all(10),
                         child: pw.Text(
                           'Percentage',
                           style: pw.TextStyle(
@@ -840,36 +936,151 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
                           ),
                         ),
                       ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(10),
+                        child: pw.Text(
+                          'Visual',
+                          style: pw.TextStyle(
+                            color: PdfColors.white,
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                  ...sortedCategories.map((entry) {
-                    final percent = (entry.value / expenses * 100);
+
+                  // Data Rows - ALL CATEGORIES (No limit!)
+                  ...sortedCategories.asMap().entries.map((entry) {
+                    final index = entry.key + 1;
+                    final categoryEntry = entry.value;
+                    final percent = (categoryEntry.value / expenses * 100);
+                    final barLength =
+                        (percent / 100 * 20).toInt(); // Scale for visual bar
+
                     return pw.TableRow(
+                      decoration: pw.BoxDecoration(
+                        color: index.isEven
+                            ? PdfColor.fromHex('#FFFFFF')
+                            : PdfColor.fromHex('#F9FAFB'),
+                      ),
                       children: [
+                        // Rank
                         pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
+                          padding: const pw.EdgeInsets.all(10),
                           child: pw.Text(
-                            entry.key,
-                            style: pw.TextStyle(fontSize: 10),
+                            '$index',
+                            style: pw.TextStyle(
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColor.fromHex('#10B981'),
+                            ),
                           ),
                         ),
+
+                        // Category Name
                         pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
+                          padding: const pw.EdgeInsets.all(10),
                           child: pw.Text(
-                            '${Helpers.getCurrencySymbol(currency)}${entry.value.toStringAsFixed(2)}',
-                            style: pw.TextStyle(fontSize: 10),
+                            categoryEntry.key,
+                            style: pw.TextStyle(
+                              fontSize: 11,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
                           ),
                         ),
+
+                        // Amount
                         pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
+                          padding: const pw.EdgeInsets.all(10),
+                          child: pw.Text(
+                            '${Helpers.getCurrencySymbol(currency)}${categoryEntry.value.toStringAsFixed(2)}',
+                            style: pw.TextStyle(
+                              fontSize: 11,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+
+                        // Percentage
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(10),
                           child: pw.Text(
                             '${percent.toStringAsFixed(1)}%',
-                            style: pw.TextStyle(fontSize: 10),
+                            style: pw.TextStyle(
+                              fontSize: 11,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+
+                        // Visual Bar
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(10),
+                          child: pw.Container(
+                            height: 8,
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(
+                                  color: PdfColor.fromHex('#10B981'),
+                                  width: 0.5),
+                              borderRadius: const pw.BorderRadius.all(
+                                  pw.Radius.circular(2)),
+                            ),
+                            child: pw.Stack(
+                              children: [
+                                pw.Container(
+                                  width: barLength *
+                                      5.0, // Width based on percentage
+                                  height: 8,
+                                  decoration: pw.BoxDecoration(
+                                    color: PdfColor.fromHex('#10B981'),
+                                    borderRadius: const pw.BorderRadius.all(
+                                        pw.Radius.circular(2)),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     );
                   }).toList(),
+                ],
+              ),
+
+              pw.SizedBox(height: 20),
+
+              // Summary Statistics
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Category Statistics',
+                    style: pw.TextStyle(
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Text(
+                    '• Highest Spending: ${sortedCategories.first.key} (${Helpers.getCurrencySymbol(currency)}${sortedCategories.first.value.toStringAsFixed(2)})',
+                    style: pw.TextStyle(fontSize: 10),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    '• Lowest Spending: ${sortedCategories.last.key} (${Helpers.getCurrencySymbol(currency)}${sortedCategories.last.value.toStringAsFixed(2)})',
+                    style: pw.TextStyle(fontSize: 10),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    '• Median Spending: ${Helpers.getCurrencySymbol(currency)}${(sortedCategories[sortedCategories.length ~/ 2].value).toStringAsFixed(2)}',
+                    style: pw.TextStyle(fontSize: 10),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    '• Total Categories Tracked: ${sortedCategories.length}',
+                    style: pw.TextStyle(fontSize: 10),
+                  ),
                 ],
               ),
             ],
