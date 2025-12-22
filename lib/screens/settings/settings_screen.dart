@@ -84,14 +84,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () => _showChangePasswordDialog(authProvider),
                   ),
                 ]),
-                const SizedBox(height: 16),
-                _buildSettingsSection('About', [
-                  _buildSettingItem(
-                    'App Version',
-                    '1.0.0',
-                    Iconsax.info_circle,
-                  ),
-                ]),
+                const SizedBox(height: 32),
+                // ✅ Premium Clootec Branding Footer
+                _buildClootecBranding(),
                 const SizedBox(height: 32),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -355,6 +350,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Helpers.showSnackBar(context, 'Currency changed to $value');
           }
         },
+      ),
+    );
+  }
+
+  // ✅ Simple Web Footer Style Branding
+  Widget _buildClootecBranding() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          // Divider
+          Divider(
+            color: Colors.grey.withValues(alpha: 0.3),
+            thickness: 1,
+          ),
+          const SizedBox(height: 16),
+
+          // App Version
+          Text(
+            'Version 1.0.0',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: Colors.grey.shade500,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Footer Text with Brand
+          RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
+              children: [
+                const TextSpan(text: 'Made with '),
+                TextSpan(
+                  text: '❤️',
+                  style: TextStyle(color: Colors.red.shade400),
+                ),
+                const TextSpan(text: ' by '),
+                TextSpan(
+                  text: 'Clootec',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primaryGreen,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+
+          // Copyright
+          Text(
+            '© ${DateTime.now().year} Clootec. All rights reserved.',
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              color: Colors.grey.shade500,
+            ),
+          ),
+        ],
       ),
     );
   }
