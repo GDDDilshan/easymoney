@@ -1,17 +1,14 @@
-// FILE: lib/widgets/category_expenses_chart.dart
-// FIXED VERSION - Shows ALL categories with consistent colors
-
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../providers/transaction_provider.dart';
-import '../../providers/auth_provider.dart';
-import '../../utils/helpers.dart';
-import '../../utils/theme.dart';
-import '../../utils/constants.dart';
+import '../providers/transaction_provider.dart';
+import '../providers/auth_provider.dart';
+import '../utils/helpers.dart';
+import '../utils/theme.dart';
+import '../utils/constants.dart';
 
 class CategoryExpensesChart extends StatefulWidget {
   const CategoryExpensesChart({super.key});
@@ -74,6 +71,7 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
     }
   }
 
+  // ✅ FIXED: Dark theme calendar with clearly visible selected dates
   Future<DateTimeRange?> showDateRangeDialog({
     required BuildContext context,
     required DateTimeRange initialDateRange,
@@ -90,16 +88,34 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
+            // ✅ FIXED: Complete ColorScheme with all necessary colors
             colorScheme: isDark
                 ? ColorScheme.dark(
+                    // Primary colors for selected dates
                     primary: AppTheme.primaryGreen,
                     onPrimary: Colors.white,
+
+                    // ✅ Selected date range background
+                    primaryContainer:
+                        AppTheme.primaryGreen.withValues(alpha: 0.35),
+                    onPrimaryContainer: Colors.white,
+
+                    // Background colors
                     surface: const Color(0xFF1E293B),
-                    onSurface: const Color(0xFFF1F5F9), // ✅ Bright text
+                    onSurface: const Color(0xFFF1F5F9), // Bright text
                     background: const Color(0xFF0F172A),
-                    onBackground: const Color(0xFFF1F5F9), // ✅ Bright text
+                    onBackground: const Color(0xFFF1F5F9), // Bright text
+
+                    // ✅ Date cells that are not selected
+                    surfaceVariant: const Color(0xFF334155),
+                    onSurfaceVariant: const Color(0xFFE2E8F0),
+
+                    // Secondary colors
                     secondary: AppTheme.primaryTeal,
                     onSecondary: Colors.white,
+
+                    // ✅ Outline for date cells
+                    outline: const Color(0xFF475569),
                   )
                 : ColorScheme.light(
                     primary: AppTheme.primaryGreen,
@@ -111,27 +127,125 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
                     secondary: AppTheme.primaryTeal,
                     onSecondary: Colors.white,
                   ),
-            // ✅ Additional text theme for dark mode readability
+
+            // ✅ FIXED: Complete text theme with Google Fonts
             textTheme: isDark
-                ? const TextTheme(
-                    displayLarge: TextStyle(color: Color(0xFFF1F5F9)),
-                    displayMedium: TextStyle(color: Color(0xFFF1F5F9)),
-                    displaySmall: TextStyle(color: Color(0xFFF1F5F9)),
-                    headlineMedium: TextStyle(color: Color(0xFFF1F5F9)),
-                    titleLarge: TextStyle(color: Color(0xFFE2E8F0)),
-                    titleMedium: TextStyle(color: Color(0xFFE2E8F0)),
-                    titleSmall: TextStyle(color: Color(0xFFCBD5E1)),
-                    bodyLarge: TextStyle(color: Color(0xFFCBD5E1)),
-                    bodyMedium: TextStyle(color: Color(0xFFA1A9B8)),
-                    labelLarge: TextStyle(color: Color(0xFFF1F5F9)),
+                ? GoogleFonts.interTextTheme(ThemeData.dark().textTheme)
+                    .copyWith(
+                    // Headers (month/year)
+                    displayLarge: GoogleFonts.poppins(
+                      color: const Color(0xFFF1F5F9),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 32,
+                    ),
+                    displayMedium: GoogleFonts.poppins(
+                      color: const Color(0xFFF1F5F9),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 28,
+                    ),
+                    displaySmall: GoogleFonts.poppins(
+                      color: const Color(0xFFF1F5F9),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                    ),
+
+                    // Titles
+                    headlineLarge: GoogleFonts.poppins(
+                      color: const Color(0xFFF1F5F9),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 28,
+                    ),
+                    headlineMedium: GoogleFonts.poppins(
+                      color: const Color(0xFFF1F5F9),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 20,
+                    ),
+                    headlineSmall: GoogleFonts.poppins(
+                      color: const Color(0xFFE2E8F0),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                    ),
+
+                    // Body text (dates)
+                    titleLarge: GoogleFonts.inter(
+                      color: const Color(0xFFE2E8F0),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                    titleMedium: GoogleFonts.inter(
+                      color: const Color(0xFFE2E8F0),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                    titleSmall: GoogleFonts.inter(
+                      color: const Color(0xFFCBD5E1),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+
+                    // Date numbers
+                    bodyLarge: GoogleFonts.inter(
+                      color: const Color(0xFFE2E8F0),
+                      fontSize: 16,
+                    ),
+                    bodyMedium: GoogleFonts.inter(
+                      color: const Color(0xFFCBD5E1),
+                      fontSize: 14,
+                    ),
+                    bodySmall: GoogleFonts.inter(
+                      color: const Color(0xFFA1A9B8),
+                      fontSize: 12,
+                    ),
+
+                    // Labels (day names: Mon, Tue, Wed, etc.)
+                    labelLarge: GoogleFonts.inter(
+                      color: const Color(0xFFF1F5F9),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    labelMedium: GoogleFonts.inter(
+                      color: const Color(0xFFE2E8F0),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                    labelSmall: GoogleFonts.inter(
+                      color: const Color(0xFFCBD5E1),
+                      fontSize: 10,
+                    ),
                   )
                 : null,
+
             // ✅ Dialog background
             dialogBackgroundColor:
                 isDark ? const Color(0xFF1E293B) : Colors.white,
-            // ✅ Divider color for better visibility
+
+            // ✅ Divider color (between dates)
             dividerColor:
-                isDark ? const Color(0xFF334155) : Colors.grey.shade300,
+                isDark ? const Color(0xFF475569) : Colors.grey.shade300,
+
+            // ✅ Card theme for date cells
+            cardTheme: CardThemeData(
+              color: isDark ? const Color(0xFF334155) : Colors.white,
+              elevation: 0,
+            ),
+
+            // ✅ Icon theme (arrows, etc.)
+            iconTheme: IconThemeData(
+              color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF0F172A),
+              size: 24,
+            ),
+
+            // ✅ Button styles (OK/Cancel)
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor:
+                    isDark ? AppTheme.primaryGreen : AppTheme.primaryGreen,
+                textStyle: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ),
           child: child!,
         );
@@ -156,7 +270,7 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
     final totalExpenses =
         categorySpending.values.fold<double>(0, (sum, value) => sum + value);
 
-    // FIXED: Get ALL categories with spending (no limit)
+    // Get ALL categories with spending (no limit)
     final sortedCategories = categorySpending.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -201,7 +315,7 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
 
           const SizedBox(height: 28),
 
-          // FIXED: Show ALL categories with data
+          // Show ALL categories with data
           _buildCategoryLegend(sortedCategories, currency, totalExpenses)
               .animate()
               .fadeIn(delay: 400.ms)
@@ -341,7 +455,6 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
                   (index) {
                     final entry = sortedCategories[index];
                     final percent = (entry.value / totalExpenses * 100);
-                    // FIXED: Use consistent color from Helpers
                     final color = Helpers.getCategoryColor(entry.key);
 
                     return PieChartSectionData(
@@ -393,10 +506,9 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
   ) {
     return Column(
       children: [
-        // FIXED: Show ALL categories (no limit to 5)
+        // Show ALL categories (no limit)
         ...sortedCategories.map((entry) {
           final percent = (entry.value / totalExpenses * 100);
-          // FIXED: Use consistent color from Helpers
           final color = Helpers.getCategoryColor(entry.key);
 
           return _buildCategoryRow(
