@@ -224,6 +224,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     final percentUsed =
         totalBudget > 0 ? (totalSpent / totalBudget * 100) : 0.0;
     final isOverBudget = totalSpent > totalBudget;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -318,6 +319,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   Iconsax.arrow_up_3,
                   isOverBudget: isOverBudget,
                   currency: currency,
+                  isDark: isDark,
                 ),
               ),
               const SizedBox(width: 12),
@@ -329,6 +331,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   isOverBudget: isOverBudget,
                   showNegative: isOverBudget,
                   currency: currency,
+                  isDark: isDark,
                 ),
               ),
               const SizedBox(width: 12),
@@ -340,6 +343,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   isOverBudget: isOverBudget,
                   isPercent: true,
                   currency: currency,
+                  isDark: isDark,
                 ),
               ),
             ],
@@ -357,39 +361,87 @@ class _BudgetScreenState extends State<BudgetScreen> {
     bool isOverBudget = false,
     bool showNegative = false,
     required String currency,
+    required bool isDark,
   }) {
+    // ✅ FIXED: Premium color scheme for dark mode
     late Color iconBgColor;
     late Color iconColor;
     late Color valueColor;
+    late Color labelColor;
 
     if (label == 'Spent') {
-      iconBgColor = const Color(0xFFEF4444).withValues(alpha: 0.1);
-      iconColor = const Color(0xFFEF4444);
-      valueColor = const Color(0xFFEF4444);
+      // Red theme for Spent
+      iconBgColor = isDark
+          ? const Color(0xFFEF4444).withValues(alpha: 0.25) // Brighter in dark
+          : const Color(0xFFEF4444).withValues(alpha: 0.1);
+      iconColor = isDark
+          ? const Color(0xFFFF6B6B) // Brighter red icon in dark
+          : const Color(0xFFEF4444);
+      valueColor = isDark
+          ? const Color(0xFFFF6B6B) // Brighter red text in dark
+          : const Color(0xFFEF4444);
+      labelColor = isDark
+          ? const Color(0xFFCBD5E1) // Lighter label in dark
+          : Colors.grey.shade600;
     } else if (label == 'Over Budget' || label == 'Remaining') {
       if (isOverBudget) {
-        iconBgColor = const Color(0xFFEF4444).withValues(alpha: 0.1);
-        iconColor = const Color(0xFFEF4444);
-        valueColor = const Color(0xFFEF4444);
+        // Red theme for Over Budget
+        iconBgColor = isDark
+            ? const Color(0xFFEF4444).withValues(alpha: 0.25)
+            : const Color(0xFFEF4444).withValues(alpha: 0.1);
+        iconColor = isDark
+            ? const Color(0xFFFF6B6B) // Brighter red
+            : const Color(0xFFEF4444);
+        valueColor = isDark
+            ? const Color(0xFFFF6B6B) // Brighter red
+            : const Color(0xFFEF4444);
+        labelColor = isDark ? const Color(0xFFCBD5E1) : Colors.grey.shade600;
       } else {
-        iconBgColor = const Color(0xFF3B82F6).withValues(alpha: 0.1);
-        iconColor = const Color(0xFF3B82F6);
-        valueColor = const Color(0xFF3B82F6);
+        // Blue theme for Remaining
+        iconBgColor = isDark
+            ? const Color(0xFF3B82F6)
+                .withValues(alpha: 0.25) // Brighter in dark
+            : const Color(0xFF3B82F6).withValues(alpha: 0.1);
+        iconColor = isDark
+            ? const Color(0xFF60A5FA) // Brighter blue icon in dark
+            : const Color(0xFF3B82F6);
+        valueColor = isDark
+            ? const Color(0xFF60A5FA) // Brighter blue text in dark
+            : const Color(0xFF3B82F6);
+        labelColor = isDark ? const Color(0xFFCBD5E1) : Colors.grey.shade600;
       }
     } else {
-      iconBgColor = const Color(0xFF8B5CF6).withValues(alpha: 0.1);
-      iconColor = const Color(0xFF8B5CF6);
-      valueColor = const Color(0xFF8B5CF6);
+      // Purple theme for Used percentage
+      iconBgColor = isDark
+          ? const Color(0xFF8B5CF6).withValues(alpha: 0.25) // Brighter in dark
+          : const Color(0xFF8B5CF6).withValues(alpha: 0.1);
+      iconColor = isDark
+          ? const Color(0xFFA78BFA) // Brighter purple icon in dark
+          : const Color(0xFF8B5CF6);
+      valueColor = isDark
+          ? const Color(0xFFA78BFA) // Brighter purple text in dark
+          : const Color(0xFF8B5CF6);
+      labelColor = isDark ? const Color(0xFFCBD5E1) : Colors.grey.shade600;
     }
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // ✅ FIXED: Better card background for dark mode
+        color: isDark
+            ? const Color(0xFF1E293B) // Darker card in dark mode
+            : Colors.white,
         borderRadius: BorderRadius.circular(14),
+        // ✅ FIXED: Subtle border for dark mode
+        border: isDark
+            ? Border.all(
+                color: Colors.white.withValues(alpha: 0.1),
+                width: 1,
+              )
+            : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
             blurRadius: 12,
             offset: const Offset(0, 2),
           ),
@@ -432,7 +484,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
               label,
               style: GoogleFonts.inter(
                 fontSize: 11,
-                color: Colors.grey.shade600,
+                color: labelColor,
                 fontWeight: FontWeight.w500,
               ),
               maxLines: 1,
