@@ -1,3 +1,6 @@
+// FILE: lib/widgets/category_expenses_chart.dart
+// FIXED VERSION - Shows ALL categories with consistent colors
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -77,6 +80,8 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
     required DateTime firstDate,
     required DateTime lastDate,
   }) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return showDateRangePicker(
       context: context,
       firstDate: firstDate,
@@ -85,13 +90,48 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppTheme.primaryGreen,
-              onPrimary: Colors.white,
-              surface: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1E293B)
-                  : Colors.white,
-            ),
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: AppTheme.primaryGreen,
+                    onPrimary: Colors.white,
+                    surface: const Color(0xFF1E293B),
+                    onSurface: const Color(0xFFF1F5F9), // ✅ Bright text
+                    background: const Color(0xFF0F172A),
+                    onBackground: const Color(0xFFF1F5F9), // ✅ Bright text
+                    secondary: AppTheme.primaryTeal,
+                    onSecondary: Colors.white,
+                  )
+                : ColorScheme.light(
+                    primary: AppTheme.primaryGreen,
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: const Color(0xFF0F172A),
+                    background: const Color(0xFFF1F5F9),
+                    onBackground: const Color(0xFF0F172A),
+                    secondary: AppTheme.primaryTeal,
+                    onSecondary: Colors.white,
+                  ),
+            // ✅ Additional text theme for dark mode readability
+            textTheme: isDark
+                ? const TextTheme(
+                    displayLarge: TextStyle(color: Color(0xFFF1F5F9)),
+                    displayMedium: TextStyle(color: Color(0xFFF1F5F9)),
+                    displaySmall: TextStyle(color: Color(0xFFF1F5F9)),
+                    headlineMedium: TextStyle(color: Color(0xFFF1F5F9)),
+                    titleLarge: TextStyle(color: Color(0xFFE2E8F0)),
+                    titleMedium: TextStyle(color: Color(0xFFE2E8F0)),
+                    titleSmall: TextStyle(color: Color(0xFFCBD5E1)),
+                    bodyLarge: TextStyle(color: Color(0xFFCBD5E1)),
+                    bodyMedium: TextStyle(color: Color(0xFFA1A9B8)),
+                    labelLarge: TextStyle(color: Color(0xFFF1F5F9)),
+                  )
+                : null,
+            // ✅ Dialog background
+            dialogBackgroundColor:
+                isDark ? const Color(0xFF1E293B) : Colors.white,
+            // ✅ Divider color for better visibility
+            dividerColor:
+                isDark ? const Color(0xFF334155) : Colors.grey.shade300,
           ),
           child: child!,
         );
