@@ -8,12 +8,14 @@ import '../providers/notification_provider.dart';
 import '../models/notification_model.dart';
 import '../utils/theme.dart';
 import '../utils/helpers.dart';
-import '../screens/budget/budget_screen.dart';
-import '../screens/goals/goals_screen.dart';
-import '../screens/dashboard/dashboard_screen.dart';
 
 class NotificationPanel extends StatelessWidget {
-  const NotificationPanel({super.key});
+  final VoidCallback? onNavigateToBudget; // NEW: Callback for navigation
+
+  const NotificationPanel({
+    super.key,
+    this.onNavigateToBudget,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -325,43 +327,41 @@ class NotificationPanel extends StatelessWidget {
     );
   }
 
+  // FIXED v4: Close panel FIRST, then navigate
   void _handleNotificationTap(
     BuildContext context,
     NotificationModel notification,
     NotificationProvider provider,
   ) async {
-    // Delete notification immediately
+    debugPrint('🔔 Notification tapped: ${notification.title}');
+
+    // STEP 1: Close notification panel IMMEDIATELY
+    Navigator.of(context).pop();
+    debugPrint('✅ Panel closed');
+
+    // STEP 2: Wait for panel to close
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // STEP 3: Delete notification
     await provider.deleteNotification(notification.id!);
+    debugPrint('✅ Notification deleted');
 
-    // Get the navigator before closing the sheet
-    final navigator = Navigator.of(context);
+    // STEP 4: Navigate to Budget tab
+    if (onNavigateToBudget != null) {
+      debugPrint('🚀 Calling onNavigateToBudget callback...');
+      onNavigateToBudget!();
+      debugPrint('✅ Budget navigation callback executed');
 
-    // Close notification panel
-    navigator.pop();
-
-    // Wait for panel to close
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    // Navigate to related screen
-    if (notification.relatedScreen != null && context.mounted) {
-      switch (notification.relatedScreen) {
-        case 'budget':
-          // Navigate to Budget tab (index 2)
-          navigator.pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const DashboardScreen(initialIndex: 2),
-            ),
-          );
-          break;
-        case 'goals':
-          // Navigate to Goals tab (index 3)
-          navigator.pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const DashboardScreen(initialIndex: 3),
-            ),
-          );
-          break;
+      // STEP 5: Show confirmation AFTER navigation
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (context.mounted) {
+        Helpers.showSnackBar(
+          context,
+          '📊 Check your Budget screen',
+        );
       }
+    } else {
+      debugPrint('❌ onNavigateToBudget is NULL!');
     }
   }
 

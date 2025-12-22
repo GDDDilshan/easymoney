@@ -1,4 +1,3 @@
-// lib/screens/dashboard/dashboard_screen.dart - FIXED VERSION
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -32,27 +31,35 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   late int _selectedIndex;
 
-  final List<Widget> _screens = [
-    const DashboardHome(),
-    const TransactionsScreen(),
-    const BudgetScreen(),
-    const GoalsScreen(),
-    const SettingsScreen(),
-  ];
-
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
   }
 
+  // Method to navigate to Budget tab
+  void _navigateToBudget() {
+    setState(() {
+      _selectedIndex = 2; // Budget is at index 2
+    });
+    debugPrint('✅ Navigated to Budget tab - selectedIndex: $_selectedIndex');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final List<Widget> _screens = [
+      DashboardHome(onNavigateToBudget: _navigateToBudget),
+      const TransactionsScreen(),
+      const BudgetScreen(),
+      const GoalsScreen(),
+      const SettingsScreen(),
+    ];
+
+    debugPrint('📱 Dashboard build - selectedIndex: $_selectedIndex');
+
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      body: _screens[
+          _selectedIndex], // CHANGED: Use direct indexing instead of IndexedStack
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -138,7 +145,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class DashboardHome extends StatelessWidget {
-  const DashboardHome({super.key});
+  final VoidCallback? onNavigateToBudget;
+
+  const DashboardHome({super.key, this.onNavigateToBudget});
 
   @override
   Widget build(BuildContext context) {
@@ -225,11 +234,10 @@ class DashboardHome extends StatelessWidget {
                   ],
                 ),
 
-                // UPDATED: Use NotificationBell widget
-                const NotificationBell()
-                    .animate()
-                    .fadeIn(delay: 300.ms)
-                    .scale(delay: 300.ms),
+                // Pass the callback to NotificationBell
+                NotificationBell(
+                  onNavigateToBudget: onNavigateToBudget,
+                ).animate().fadeIn(delay: 300.ms).scale(delay: 300.ms),
               ],
             ),
           ],
@@ -440,7 +448,6 @@ class DashboardHome extends StatelessWidget {
     );
   }
 
-// NEW: Enhanced highlighted stat card widget
   Widget _buildHighlightedStatCard(
     BuildContext context, {
     required String label,
@@ -478,19 +485,17 @@ class DashboardHome extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(
-                                0xFFCBD5E1) // Light gray for dark mode
+                            ? const Color(0xFFCBD5E1)
                             : Colors.grey.shade600,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    // BOLD HIGHLIGHTED VALUE
                     Text(
                       value,
                       style: GoogleFonts.poppins(
                         fontSize: 36,
-                        fontWeight: FontWeight.w900, // Extra bold
+                        fontWeight: FontWeight.w900,
                         color: gradient.first,
                         letterSpacing: 0.5,
                       ),
@@ -520,7 +525,6 @@ class DashboardHome extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          // BOLD HIGHLIGHTED SUBLABEL
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
@@ -535,7 +539,7 @@ class DashboardHome extends StatelessWidget {
               sublabel,
               style: GoogleFonts.inter(
                 fontSize: 12,
-                fontWeight: FontWeight.bold, // Bold
+                fontWeight: FontWeight.bold,
                 color: gradient.first,
                 letterSpacing: 0.3,
               ),

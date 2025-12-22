@@ -88,7 +88,7 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
-  // ONLY METHOD FOR BUDGET NOTIFICATIONS
+  // ONLY METHOD FOR BUDGET NOTIFICATIONS - NO GOALS
   Future<void> checkAndCreateNotifications({
     required double spent,
     required double limit,

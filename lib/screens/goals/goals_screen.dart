@@ -24,6 +24,13 @@ class _GoalsScreenState extends State<GoalsScreen>
   late TabController _tabController;
 
   @override
+  void initState() {
+    super.initState();
+    // FIXED: Initialize TabController
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
@@ -137,7 +144,7 @@ class _GoalsScreenState extends State<GoalsScreen>
                 const Icon(Iconsax.flag, color: Colors.white, size: 24),
                 const SizedBox(height: 4),
                 Text(
-                  '${totalGoals}',
+                  '$totalGoals',
                   style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

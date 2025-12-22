@@ -8,7 +8,12 @@ import '../utils/theme.dart';
 import 'notification_panel.dart';
 
 class NotificationBell extends StatelessWidget {
-  const NotificationBell({super.key});
+  final VoidCallback? onNavigateToBudget; // NEW: Callback for navigation
+
+  const NotificationBell({
+    super.key,
+    this.onNavigateToBudget,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +32,6 @@ class NotificationBell extends StatelessWidget {
                 duration: const Duration(milliseconds: 300),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  // NO BACKGROUND COLOR - Just transparent
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -142,7 +146,9 @@ class NotificationBell extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const NotificationPanel(),
+      builder: (context) => NotificationPanel(
+        onNavigateToBudget: onNavigateToBudget, // Pass the callback
+      ),
     );
   }
 }
