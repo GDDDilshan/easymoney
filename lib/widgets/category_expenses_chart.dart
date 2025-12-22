@@ -74,7 +74,7 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
     }
   }
 
-  // ✅ FIXED: Dark theme calendar with premium orange color and BLACK text on selected dates
+  // ✅ FIXED: Calendar with orange theme for BOTH dark and light modes
   Future<DateTimeRange?> showDateRangeDialog({
     required BuildContext context,
     required DateTimeRange initialDateRange,
@@ -91,7 +91,7 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            // ✅ FIXED: Premium orange color scheme with BLACK text on selected dates
+            // ✅ FIXED: Premium orange color scheme for BOTH themes
             colorScheme: isDark
                 ? ColorScheme.dark(
                     // Primary colors for selected dates - ORANGE!
@@ -123,17 +123,36 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
                     outline: const Color(0xFF475569),
                   )
                 : ColorScheme.light(
-                    primary: AppTheme.primaryGreen,
-                    onPrimary: Colors.white,
+                    // ✅ LIGHT THEME - Green selected dates (original app theme)
+                    primary: AppTheme.primaryGreen, // Keep green
+                    onPrimary: Colors.white, // WHITE text on green
+
+                    // ✅ Selected date range background - Green
+                    primaryContainer: AppTheme.primaryGreen
+                        .withValues(alpha: 0.2), // Light green bg
+                    onPrimaryContainer:
+                        const Color(0xFF0F172A), // BLACK text on light green bg
+
+                    // Background colors
                     surface: Colors.white,
-                    onSurface: const Color(0xFF0F172A),
+                    onSurface: const Color(
+                        0xFF0F172A), // Black text for unselected dates
                     background: const Color(0xFFF1F5F9),
                     onBackground: const Color(0xFF0F172A),
+
+                    // Date cells
+                    surfaceVariant: const Color(0xFFF8FAFC),
+                    onSurfaceVariant: const Color(0xFF0F172A),
+
+                    // Secondary colors
                     secondary: AppTheme.primaryTeal,
                     onSecondary: Colors.white,
+
+                    // Outline
+                    outline: Colors.grey.shade300,
                   ),
 
-            // ✅ FIXED: Complete text theme with BRIGHT WHITE text for all dates
+            // ✅ FIXED: Text theme - white for dark mode, black for light mode
             textTheme: isDark
                 ? GoogleFonts.interTextTheme(ThemeData.dark().textTheme)
                     .copyWith(
@@ -220,7 +239,90 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
                       fontSize: 10,
                     ),
                   )
-                : null,
+                : GoogleFonts.interTextTheme(ThemeData.light().textTheme)
+                    .copyWith(
+                    // ✅ LIGHT MODE - BLACK text for all dates
+                    displayLarge: GoogleFonts.poppins(
+                      color: const Color(0xFF0F172A), // Black
+                      fontWeight: FontWeight.bold,
+                      fontSize: 32,
+                    ),
+                    displayMedium: GoogleFonts.poppins(
+                      color: const Color(0xFF0F172A), // Black
+                      fontWeight: FontWeight.bold,
+                      fontSize: 28,
+                    ),
+                    displaySmall: GoogleFonts.poppins(
+                      color: const Color(0xFF0F172A), // Black
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                    ),
+
+                    headlineLarge: GoogleFonts.poppins(
+                      color: const Color(0xFF0F172A), // Black
+                      fontWeight: FontWeight.bold,
+                      fontSize: 28,
+                    ),
+                    headlineMedium: GoogleFonts.poppins(
+                      color: const Color(0xFF0F172A), // Black
+                      fontWeight: FontWeight.w600,
+                      fontSize: 20,
+                    ),
+                    headlineSmall: GoogleFonts.poppins(
+                      color: const Color(0xFF0F172A), // Black
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                    ),
+
+                    // Body text - BLACK for unselected dates
+                    titleLarge: GoogleFonts.inter(
+                      color: const Color(0xFF0F172A), // Black
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                    titleMedium: GoogleFonts.inter(
+                      color: const Color(0xFF0F172A), // Black
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                    titleSmall: GoogleFonts.inter(
+                      color: const Color(0xFF0F172A), // Black
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+
+                    // Date numbers - BLACK
+                    bodyLarge: GoogleFonts.inter(
+                      color: const Color(0xFF0F172A), // Black
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    bodyMedium: GoogleFonts.inter(
+                      color: const Color(0xFF0F172A), // Black
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    bodySmall: GoogleFonts.inter(
+                      color: const Color(0xFF0F172A), // Black
+                      fontSize: 12,
+                    ),
+
+                    // Labels - BLACK
+                    labelLarge: GoogleFonts.inter(
+                      color: const Color(0xFF0F172A), // Black
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    labelMedium: GoogleFonts.inter(
+                      color: const Color(0xFF0F172A), // Black
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                    labelSmall: GoogleFonts.inter(
+                      color: const Color(0xFF0F172A), // Black
+                      fontSize: 10,
+                    ),
+                  ),
 
             // ✅ Dialog background
             dialogBackgroundColor:
@@ -242,7 +344,7 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
               size: 24,
             ),
 
-            // ✅ Button styles (OK/Cancel) - Orange theme
+            // ✅ Button styles - Orange for dark, Green for light
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor:
