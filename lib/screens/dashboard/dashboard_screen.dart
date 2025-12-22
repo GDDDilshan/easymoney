@@ -10,7 +10,6 @@ import '../../providers/budget_provider.dart';
 import '../../providers/goal_provider.dart';
 import '../../utils/helpers.dart';
 import '../../utils/theme.dart';
-import '../../widgets/stat_card.dart';
 import '../transactions/transactions_screen.dart';
 import '../budget/budget_screen.dart';
 import '../analytics/analytics_screen.dart';
@@ -177,16 +176,10 @@ class DashboardHome extends StatelessWidget {
                     const SizedBox(height: 24),
                     _buildWeeklyChart(context),
                     const SizedBox(height: 24),
-
-                    // ========================================
-                    // CATEGORY EXPENSES CHART - NEWLY ADDED
-                    // ========================================
                     const CategoryExpensesChart()
                         .animate()
                         .fadeIn(delay: 600.ms)
                         .slideY(begin: 0.2, end: 0),
-                    // ========================================
-
                     const SizedBox(height: 24),
                     _buildGoalsSection(context),
                     const SizedBox(height: 24),
@@ -403,19 +396,19 @@ class DashboardHome extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _buildMiniStat(
+                        context,
                         'Income',
                         Helpers.formatCurrency(monthlyIncome, currency),
                         Iconsax.arrow_down_1,
-                        Colors.white,
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildMiniStat(
+                        context,
                         'Expenses',
                         Helpers.formatCurrency(monthlyExpenses, currency),
                         Iconsax.arrow_up_3,
-                        Colors.white,
                       ),
                     ),
                   ],
@@ -559,7 +552,7 @@ class DashboardHome extends StatelessWidget {
   }
 
   Widget _buildMiniStat(
-      String label, String value, IconData icon, Color color) {
+      BuildContext context, String label, String value, IconData icon) {
     final isIncome = label == 'Income';
     final cardColor =
         isIncome ? const Color(0xFF10B981) : const Color(0xFFEF4444);
@@ -568,10 +561,7 @@ class DashboardHome extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        // ✅ FIXED: Much darker background for dark mode
-        color: isDark
-            ? const Color(0xFF1E293B) // Dark slate instead of white
-            : Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -604,10 +594,8 @@ class DashboardHome extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  // ✅ FIXED: Brighter text for dark mode
-                  color: isDark
-                      ? const Color(0xFFCBD5E1) // Light gray
-                      : Colors.grey.shade600,
+                  color:
+                      isDark ? const Color(0xFFCBD5E1) : Colors.grey.shade600,
                 ),
               ),
             ],
