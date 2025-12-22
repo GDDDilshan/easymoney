@@ -324,11 +324,21 @@ class DashboardHome extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        // FIXED: Black background for dark mode, white for light mode
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF0F172A) // Deep black
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(12),
+                        // FIXED: Stronger border for better visibility
+                        border: Border.all(
+                          color: isNegative
+                              ? const Color(0xFFEF4444).withValues(alpha: 0.3)
+                              : AppTheme.primaryGreen.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -339,9 +349,15 @@ class DashboardHome extends StatelessWidget {
                           Icon(
                             Iconsax.calendar,
                             size: 14,
-                            color: isNegative
-                                ? const Color(0xFFEF4444)
-                                : AppTheme.primaryGreen,
+                            // FIXED: Bright colors for dark mode
+                            color: Theme.of(context).brightness ==
+                                    Brightness.dark
+                                ? (isNegative
+                                    ? const Color(0xFFFF6B6B) // Brighter red
+                                    : const Color(0xFF34D399)) // Brighter green
+                                : (isNegative
+                                    ? const Color(0xFFEF4444)
+                                    : AppTheme.primaryGreen),
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -349,9 +365,16 @@ class DashboardHome extends StatelessWidget {
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: isNegative
-                                  ? const Color(0xFFEF4444)
-                                  : AppTheme.primaryGreen,
+                              // FIXED: Bright colors for dark mode
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? (isNegative
+                                      ? const Color(0xFFFF6B6B) // Brighter red
+                                      : const Color(
+                                          0xFF34D399)) // Brighter green
+                                  : (isNegative
+                                      ? const Color(0xFFEF4444)
+                                      : AppTheme.primaryGreen),
                             ),
                           ),
                         ],
