@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.easymoney.app" "\0"
-            VALUE "FileDescription", "easymoney" "\0"
+            VALUE "FileDescription", "Money Manager" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "easymoney" "\0"
+            VALUE "InternalName", "Money Manager" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.easymoney.app. All rights reserved." "\0"
             VALUE "OriginalFilename", "easymoney.exe" "\0"
-            VALUE "ProductName", "easymoney" "\0"
+            VALUE "ProductName", "Money Manager" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
