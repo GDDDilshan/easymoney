@@ -19,6 +19,11 @@ dependencies:
   # State Management
   provider: ^6.1.1
   
+  # 🔒 NEW: Security & Encryption
+  flutter_secure_storage: ^9.2.2  # Encrypted local storage
+  encrypt: ^5.0.3                 # Encryption library
+  crypto: ^3.0.3                  # Cryptographic functions
+  
   # UI & Styling
   cupertino_icons: ^1.0.6
   google_fonts: ^6.1.0
@@ -70,53 +75,28 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
-  flutter_launcher_icons: ^0.13.1  # Icon generator package
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
-  
-  # [IMPORTANT] Commented out because these files do not exist yet.
-  # Uncomment these lines only after you create the folders and files.
-  # assets:
-  #   - assets/animations/
-  #   - assets/images/
-  #   - assets/icons/
-  
-  # fonts:
-  #   - family: CustomIcons
-  #     fonts:
-  #       - asset: fonts/CustomIcons.ttf
 
-# ============================================
-# APP ICON CONFIGURATION
-# ============================================
 flutter_launcher_icons:
   android: true
   ios: true
   image_path: "app_icon.png"
-  
-  # Android Adaptive Icon (Material Design)
-  adaptive_icon_background: "#10B981"  # Your app's primary green
+  adaptive_icon_background: "#10B981"
   adaptive_icon_foreground: "app_icon.png"
-  
-  # iOS Settings
   ios_content_scaling: "scaleAspectFit"
   remove_alpha_ios: true
-  
-  # Web Icon
   web:
     generate: true
     image_path: "app_icon.png"
     background_color: "#10B981"
     theme_color: "#10B981"
-    
-  # Windows Icon
   windows:
     generate: true
     image_path: "app_icon.png"
     icon_size: 48
-    
-  # macOS Icon
   macos:
     generate: true
     image_path: "app_icon.png"

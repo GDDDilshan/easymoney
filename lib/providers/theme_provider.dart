@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../services/secure_storage_service.dart';
 
 class ThemeProvider with ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
+  final SecureStorageService _secureStorage = SecureStorageService();
 
   ThemeMode get themeMode => _themeMode;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
@@ -11,28 +12,51 @@ class ThemeProvider with ChangeNotifier {
     _loadThemeMode();
   }
 
+  /// 🔒 ENCRYPTED: Load theme preference from secure storage
   Future<void> _loadThemeMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool('isDarkMode') ?? false;
-    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
-    notifyListeners();
+    try {
+      final isDark = await _secureStorage.readBool(key: StorageKeys.theme);
+      if (isDark != null) {
+        _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+        notifyListeners();
+        debugPrint('✅ Theme loaded (encrypted): ${_themeMode.name}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading theme: $e');
+    }
   }
 
+  /// 🔒 ENCRYPTED: Save theme preference to secure storage
   Future<void> toggleTheme() async {
     _themeMode =
         _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkMode', _themeMode == ThemeMode.dark);
+    try {
+      await _secureStorage.writeBool(
+        key: StorageKeys.theme,
+        value: _themeMode == ThemeMode.dark,
+      );
+      debugPrint('✅ Theme saved (encrypted): ${_themeMode.name}');
+    } catch (e) {
+      debugPrint('❌ Error saving theme: $e');
+    }
 
     notifyListeners();
   }
 
+  /// 🔒 ENCRYPTED: Set specific theme mode
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkMode', mode == ThemeMode.dark);
+    try {
+      await _secureStorage.writeBool(
+        key: StorageKeys.theme,
+        value: mode == ThemeMode.dark,
+      );
+      debugPrint('✅ Theme set (encrypted): ${mode.name}');
+    } catch (e) {
+      debugPrint('❌ Error setting theme: $e');
+    }
 
     notifyListeners();
   }
