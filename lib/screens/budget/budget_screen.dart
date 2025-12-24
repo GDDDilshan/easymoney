@@ -25,6 +25,29 @@ class _BudgetScreenState extends State<BudgetScreen> {
   // CRITICAL: Static variable to track if we've EVER checked notifications
   static bool _hasEverCheckedNotifications = false;
 
+  // ✅ Filter state - defaults to current month
+  int? _filterMonth;
+  int? _filterYear;
+  bool _isFilterActive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize filter to current month
+    final now = DateTime.now();
+    _filterMonth = now.month;
+    _filterYear = now.year;
+
+    // ONLY check notifications once on very first init for CURRENT MONTH ONLY
+    if (!_hasEverCheckedNotifications) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _checkBudgetNotifications(context);
+        }
+      });
+    }
+  }
+
   void _checkBudgetNotifications(BuildContext context) {
     // FIXED: Only check ONCE per app session, never again
     if (_hasEverCheckedNotifications) {
@@ -44,7 +67,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     final now = DateTime.now();
 
     for (var budget in budgetProvider.budgets) {
-      // Only check current month budgets
+      // ✅ ONLY CHECK CURRENT MONTH BUDGETS
       if (budget.month == now.month && budget.year == now.year) {
         final budgetStart = DateTime(budget.year, budget.month, 1);
         final budgetEnd = DateTime(budget.year, budget.month + 1, 0);
@@ -75,17 +98,21 @@ class _BudgetScreenState extends State<BudgetScreen> {
         '✅ Budget notifications checked - will NOT check again this session');
   }
 
-  @override
-  void initState() {
-    super.initState();
-    // ONLY check notifications once on very first init
-    if (!_hasEverCheckedNotifications) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _checkBudgetNotifications(context);
-        }
-      });
+  // ✅ Get filtered budgets based on selected month/year
+  List<BudgetModel> _getFilteredBudgets(List<BudgetModel> allBudgets) {
+    if (_filterMonth == null || _filterYear == null) {
+      return allBudgets;
     }
+
+    return allBudgets
+        .where((b) => b.month == _filterMonth && b.year == _filterYear)
+        .toList();
+  }
+
+  // ✅ Check if current filter is for current month
+  bool _isCurrentMonthFilter() {
+    final now = DateTime.now();
+    return _filterMonth == now.month && _filterYear == now.year;
   }
 
   @override
@@ -94,6 +121,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
     final currency = authProvider.selectedCurrency;
     final budgetProvider = Provider.of<BudgetProvider>(context);
     final transactionProvider = Provider.of<TransactionProvider>(context);
+
+    // ✅ Get filtered budgets
+    final filteredBudgets = _getFilteredBudgets(budgetProvider.budgets);
+    final isCurrentMonth = _isCurrentMonthFilter();
 
     return Scaffold(
       body: Container(
@@ -114,23 +145,35 @@ class _BudgetScreenState extends State<BudgetScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(budgetProvider, transactionProvider, currency),
-              _buildOverviewCard(budgetProvider, transactionProvider, currency),
+              _buildHeader(filteredBudgets.length),
+              _buildOverviewCard(
+                filteredBudgets,
+                transactionProvider,
+                currency,
+                isCurrentMonth,
+              ),
               Expanded(
                 child: budgetProvider.isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : budgetProvider.budgets.isEmpty
+                    : filteredBudgets.isEmpty
                         ? Padding(
                             padding: const EdgeInsets.only(bottom: 80),
                             child: EmptyState(
                               icon: Iconsax.chart_21,
-                              title: 'No Budgets Set',
-                              message:
-                                  'Create your first budget to start tracking spending',
+                              title: isCurrentMonth
+                                  ? 'No Budgets Set'
+                                  : 'No Budgets for This Period',
+                              message: isCurrentMonth
+                                  ? 'Create your first budget to start tracking spending'
+                                  : 'No budgets found for ${_getMonthName(_filterMonth!)} $_filterYear',
                             ),
                           )
                         : _buildBudgetList(
-                            budgetProvider, transactionProvider, currency),
+                            filteredBudgets,
+                            transactionProvider,
+                            currency,
+                            isCurrentMonth,
+                          ),
               ),
             ],
           ),
@@ -151,13 +194,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
   }
 
-  Widget _buildHeader(BudgetProvider budgetProvider,
-      TransactionProvider transactionProvider, String currency) {
-    final now = DateTime.now();
-    final currentMonthBudgets = budgetProvider.budgets
-        .where((b) => b.month == now.month && b.year == now.year)
-        .length;
-
+  Widget _buildHeader(int budgetCount) {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -176,7 +213,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   ),
                 ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.2, end: 0),
                 Text(
-                  '$currentMonthBudgets budgets this month',
+                  '$budgetCount ${_isCurrentMonthFilter() ? "budgets this month" : "budgets for ${_getMonthName(_filterMonth!)}"}',
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     color: Colors.grey,
@@ -185,41 +222,59 @@ class _BudgetScreenState extends State<BudgetScreen> {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryGreen.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+          // ✅ NEW: Premium Filter Button
+          GestureDetector(
+            onTap: _showFilterDialog,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: _isFilterActive ? AppTheme.primaryGradient : null,
+                color: _isFilterActive
+                    ? null
+                    : AppTheme.primaryGreen.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: _isFilterActive
+                    ? null
+                    : Border.all(
+                        color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+                        width: 2,
+                      ),
+                boxShadow: _isFilterActive
+                    ? [
+                        BoxShadow(
+                          color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Icon(
+                Iconsax.filter,
+                color: _isFilterActive ? Colors.white : AppTheme.primaryGreen,
+                size: 24,
+              ),
             ),
-            child: const Icon(Iconsax.chart_21, color: Colors.white),
           ).animate().fadeIn(delay: 300.ms).scale(delay: 300.ms),
         ],
       ),
     );
   }
 
-  Widget _buildOverviewCard(BudgetProvider budgetProvider,
-      TransactionProvider transactionProvider, String currency) {
-    final now = DateTime.now();
-    final startOfMonth = DateTime(now.year, now.month, 1);
-    final endOfMonth = DateTime(now.year, now.month + 1, 0);
-
-    final currentMonthBudgets = budgetProvider.budgets
-        .where((b) => b.month == now.month && b.year == now.year)
-        .toList();
+  Widget _buildOverviewCard(
+    List<BudgetModel> budgets,
+    TransactionProvider transactionProvider,
+    String currency,
+    bool isCurrentMonth,
+  ) {
+    // Calculate totals for the filtered month
+    final monthStart = DateTime(_filterYear!, _filterMonth!, 1);
+    final monthEnd = DateTime(_filterYear!, _filterMonth! + 1, 0);
 
     final totalBudget =
-        currentMonthBudgets.fold<double>(0.0, (sum, b) => sum + b.monthlyLimit);
-
+        budgets.fold<double>(0.0, (sum, b) => sum + b.monthlyLimit);
     final totalSpent =
-        transactionProvider.getTotalExpenses(startOfMonth, endOfMonth);
+        transactionProvider.getTotalExpenses(monthStart, monthEnd);
     final remaining = totalBudget - totalSpent;
     final percentUsed =
         totalBudget > 0 ? (totalSpent / totalBudget * 100) : 0.0;
@@ -254,7 +309,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // ✅ Enhanced "Total Budget" label with icon
               Row(
                 children: [
                   Container(
@@ -264,7 +318,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      Iconsax.tick_circle,
+                      isCurrentMonth
+                          ? Iconsax.tick_circle
+                          : Iconsax.archive_book,
                       color: Colors.white,
                       size: 16,
                     ),
@@ -281,14 +337,12 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   ),
                 ],
               ),
-              // ✅ Enhanced month badge with premium styling
+              // ✅ Premium Status Badge
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF0F172A) // Deep black for dark mode
-                      : Colors.white,
+                  color: isDark ? const Color(0xFF0F172A) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isOverBudget
@@ -312,24 +366,21 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       size: 14,
                       color: isDark
                           ? (isOverBudget
-                              ? const Color(0xFFFF6B6B) // Brighter red for dark
-                              : const Color(
-                                  0xFF34D399)) // Brighter green for dark
+                              ? const Color(0xFFFF6B6B)
+                              : const Color(0xFF34D399))
                           : (isOverBudget
                               ? const Color(0xFFEF4444)
                               : AppTheme.primaryGreen),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      Helpers.getMonthName(now.month),
+                      _getMonthName(_filterMonth!),
                       style: GoogleFonts.inter(
                         fontSize: 13,
                         color: isDark
                             ? (isOverBudget
-                                ? const Color(
-                                    0xFFFF6B6B) // Brighter red for dark
-                                : const Color(
-                                    0xFF34D399)) // Brighter green for dark
+                                ? const Color(0xFFFF6B6B)
+                                : const Color(0xFF34D399))
                             : (isOverBudget
                                 ? const Color(0xFFEF4444)
                                 : AppTheme.primaryGreen),
@@ -351,6 +402,25 @@ class _BudgetScreenState extends State<BudgetScreen> {
               color: Colors.white,
             ),
           ),
+          // ✅ Show status message for non-current months
+          if (!isCurrentMonth) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _getStatusMessage(),
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
@@ -417,81 +487,50 @@ class _BudgetScreenState extends State<BudgetScreen> {
     required String currency,
     required bool isDark,
   }) {
-    // ✅ FIXED: Premium color scheme for dark mode
     late Color iconBgColor;
     late Color iconColor;
     late Color valueColor;
     late Color labelColor;
 
     if (label == 'Spent') {
-      // Red theme for Spent
       iconBgColor = isDark
-          ? const Color(0xFFEF4444).withValues(alpha: 0.25) // Brighter in dark
+          ? const Color(0xFFEF4444).withValues(alpha: 0.25)
           : const Color(0xFFEF4444).withValues(alpha: 0.1);
-      iconColor = isDark
-          ? const Color(0xFFFF6B6B) // Brighter red icon in dark
-          : const Color(0xFFEF4444);
-      valueColor = isDark
-          ? const Color(0xFFFF6B6B) // Brighter red text in dark
-          : const Color(0xFFEF4444);
-      labelColor = isDark
-          ? const Color(0xFFCBD5E1) // Lighter label in dark
-          : Colors.grey.shade600;
+      iconColor = isDark ? const Color(0xFFFF6B6B) : const Color(0xFFEF4444);
+      valueColor = isDark ? const Color(0xFFFF6B6B) : const Color(0xFFEF4444);
+      labelColor = isDark ? const Color(0xFFCBD5E1) : Colors.grey.shade600;
     } else if (label == 'Over Budget' || label == 'Remaining') {
       if (isOverBudget) {
-        // Red theme for Over Budget
         iconBgColor = isDark
             ? const Color(0xFFEF4444).withValues(alpha: 0.25)
             : const Color(0xFFEF4444).withValues(alpha: 0.1);
-        iconColor = isDark
-            ? const Color(0xFFFF6B6B) // Brighter red
-            : const Color(0xFFEF4444);
-        valueColor = isDark
-            ? const Color(0xFFFF6B6B) // Brighter red
-            : const Color(0xFFEF4444);
+        iconColor = isDark ? const Color(0xFFFF6B6B) : const Color(0xFFEF4444);
+        valueColor = isDark ? const Color(0xFFFF6B6B) : const Color(0xFFEF4444);
         labelColor = isDark ? const Color(0xFFCBD5E1) : Colors.grey.shade600;
       } else {
-        // Blue theme for Remaining
         iconBgColor = isDark
-            ? const Color(0xFF3B82F6)
-                .withValues(alpha: 0.25) // Brighter in dark
+            ? const Color(0xFF3B82F6).withValues(alpha: 0.25)
             : const Color(0xFF3B82F6).withValues(alpha: 0.1);
-        iconColor = isDark
-            ? const Color(0xFF60A5FA) // Brighter blue icon in dark
-            : const Color(0xFF3B82F6);
-        valueColor = isDark
-            ? const Color(0xFF60A5FA) // Brighter blue text in dark
-            : const Color(0xFF3B82F6);
+        iconColor = isDark ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6);
+        valueColor = isDark ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6);
         labelColor = isDark ? const Color(0xFFCBD5E1) : Colors.grey.shade600;
       }
     } else {
-      // Purple theme for Used percentage
       iconBgColor = isDark
-          ? const Color(0xFF8B5CF6).withValues(alpha: 0.25) // Brighter in dark
+          ? const Color(0xFF8B5CF6).withValues(alpha: 0.25)
           : const Color(0xFF8B5CF6).withValues(alpha: 0.1);
-      iconColor = isDark
-          ? const Color(0xFFA78BFA) // Brighter purple icon in dark
-          : const Color(0xFF8B5CF6);
-      valueColor = isDark
-          ? const Color(0xFFA78BFA) // Brighter purple text in dark
-          : const Color(0xFF8B5CF6);
+      iconColor = isDark ? const Color(0xFFA78BFA) : const Color(0xFF8B5CF6);
+      valueColor = isDark ? const Color(0xFFA78BFA) : const Color(0xFF8B5CF6);
       labelColor = isDark ? const Color(0xFFCBD5E1) : Colors.grey.shade600;
     }
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        // ✅ FIXED: Better card background for dark mode
-        color: isDark
-            ? const Color(0xFF1E293B) // Darker card in dark mode
-            : Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(14),
-        // ✅ FIXED: Subtle border for dark mode
         border: isDark
-            ? Border.all(
-                color: Colors.white.withValues(alpha: 0.1),
-                width: 1,
-              )
+            ? Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1)
             : null,
         boxShadow: [
           BoxShadow(
@@ -510,11 +549,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
               color: iconBgColor,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 20,
-            ),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
           const SizedBox(height: 8),
           FittedBox(
@@ -549,38 +584,24 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
   }
 
-  Widget _buildBudgetList(BudgetProvider budgetProvider,
-      TransactionProvider transactionProvider, String currency) {
-    final now = DateTime.now();
-    final startOfMonth = DateTime(now.year, now.month, 1);
-    final endOfMonth = DateTime(now.year, now.month + 1, 0);
-
-    final sortedBudgets = budgetProvider.budgets.toList()
-      ..sort((a, b) {
-        if (a.isCurrentMonth && !b.isCurrentMonth) return -1;
-        if (!a.isCurrentMonth && b.isCurrentMonth) return 1;
-
-        if (a.isFutureMonth && !b.isFutureMonth) return -1;
-        if (!a.isFutureMonth && b.isFutureMonth) return 1;
-
-        final aDate = DateTime(a.year, a.month);
-        final bDate = DateTime(b.year, b.month);
-        return aDate.compareTo(bDate);
-      });
-
+  Widget _buildBudgetList(
+    List<BudgetModel> budgets,
+    TransactionProvider transactionProvider,
+    String currency,
+    bool isCurrentMonth,
+  ) {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
-      itemCount: sortedBudgets.length,
+      itemCount: budgets.length,
       itemBuilder: (context, index) {
-        final budget = sortedBudgets[index];
-
+        final budget = budgets[index];
         final budgetStart = DateTime(budget.year, budget.month, 1);
         final budgetEnd = DateTime(budget.year, budget.month + 1, 0);
         final budgetCategorySpending =
             transactionProvider.getCategorySpending(budgetStart, budgetEnd);
         final spent = budgetCategorySpending[budget.category] ?? 0;
 
-        return _buildBudgetCard(budget, spent, index, currency)
+        return _buildBudgetCard(budget, spent, index, currency, isCurrentMonth)
             .animate()
             .fadeIn(delay: (100 * index).ms)
             .slideX(begin: -0.2, end: 0);
@@ -589,30 +610,17 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   Widget _buildBudgetCard(
-      BudgetModel budget, double spent, int index, String currency) {
+    BudgetModel budget,
+    double spent,
+    int index,
+    String currency,
+    bool isCurrentMonth,
+  ) {
     final percentageUsed = (spent / budget.monthlyLimit * 100);
     final progress = percentageUsed.clamp(0, 100);
     final remaining = budget.monthlyLimit - spent;
     final isOverBudget = spent > budget.monthlyLimit;
     final isNearLimit = progress >= budget.alertThreshold;
-
-    Color statusColor;
-    String statusLabel;
-    IconData statusIcon;
-
-    if (budget.isCurrentMonth) {
-      statusColor = AppTheme.primaryGreen;
-      statusLabel = 'Current';
-      statusIcon = Iconsax.tick_circle;
-    } else if (budget.isFutureMonth) {
-      statusColor = Colors.blue;
-      statusLabel = 'Future';
-      statusIcon = Iconsax.clock;
-    } else {
-      statusColor = Colors.orange;
-      statusLabel = 'Past';
-      statusIcon = Iconsax.archive_book;
-    }
 
     return Dismissible(
       key: Key(budget.id ?? ''),
@@ -639,7 +647,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 ? Colors.red.withValues(alpha: 0.3)
                 : isNearLimit
                     ? Colors.orange.withValues(alpha: 0.3)
-                    : statusColor.withValues(alpha: 0.2),
+                    : Helpers.getCategoryColor(budget.category)
+                        .withValues(alpha: 0.2),
             width: 2,
           ),
           boxShadow: [
@@ -683,40 +692,13 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Row(
-                        children: [
-                          Icon(
-                            Iconsax.calendar,
-                            size: 12,
-                            color: statusColor,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            budget.monthYearString,
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              color: statusColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              statusLabel,
-                              style: GoogleFonts.inter(
-                                fontSize: 10,
-                                color: statusColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        budget.monthYearString,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
@@ -745,7 +727,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                       ],
                     ),
                   )
-                else if (isNearLimit)
+                else if (isNearLimit && isCurrentMonth)
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -781,13 +763,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Spent',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
+                      Text('Spent',
+                          style: GoogleFonts.inter(
+                              fontSize: 12, color: Colors.grey)),
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
@@ -809,13 +787,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Limit',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
+                      Text('Limit',
+                          style: GoogleFonts.inter(
+                              fontSize: 12, color: Colors.grey)),
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
@@ -837,10 +811,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     children: [
                       Text(
                         isOverBudget ? 'Over' : 'Left',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
+                        style:
+                            GoogleFonts.inter(fontSize: 12, color: Colors.grey),
                       ),
                       FittedBox(
                         fit: BoxFit.scaleDown,
@@ -894,10 +866,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 ),
                 Text(
                   'Alert at ${budget.alertThreshold}%',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: Colors.grey,
-                  ),
+                  style: GoogleFonts.inter(fontSize: 11, color: Colors.grey),
                 ),
               ],
             ),
@@ -942,10 +911,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
           builder: (context) => AlertDialog(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text(
-              'Delete Budget',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-            ),
+            title: Text('Delete Budget',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
             content: Text(
               'Are you sure you want to delete the budget for "${budget.category}" (${budget.monthYearString})?',
               style: GoogleFonts.inter(),
@@ -964,10 +931,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     Helpers.showSnackBar(context, 'Budget deleted');
                   }
                 },
-                child: Text(
-                  'Delete',
-                  style: GoogleFonts.inter(color: Colors.red),
-                ),
+                child:
+                    Text('Delete', style: GoogleFonts.inter(color: Colors.red)),
               ),
             ],
           ),
@@ -986,6 +951,399 @@ class _BudgetScreenState extends State<BudgetScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => AddBudgetScreen(budget: budget)),
+    );
+  }
+
+  // ✅ NEW: Show premium filter dialog
+  void _showFilterDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _FilterSheet(
+        currentMonth: _filterMonth!,
+        currentYear: _filterYear!,
+        onApply: (month, year) {
+          setState(() {
+            _filterMonth = month;
+            _filterYear = year;
+            final now = DateTime.now();
+            _isFilterActive = !(month == now.month && year == now.year);
+          });
+        },
+        onReset: () {
+          final now = DateTime.now();
+          setState(() {
+            _filterMonth = now.month;
+            _filterYear = now.year;
+            _isFilterActive = false;
+          });
+        },
+      ),
+    );
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    return months[month - 1];
+  }
+
+  String _getStatusMessage() {
+    final now = DateTime.now();
+    final budgetDate = DateTime(_filterYear!, _filterMonth!);
+    final currentDate = DateTime(now.year, now.month);
+
+    if (budgetDate.isBefore(currentDate)) {
+      return '❌ Expired - Not Active';
+    } else if (budgetDate.isAfter(currentDate)) {
+      return '⏰ Future - Not Active';
+    }
+    return '✅ Active';
+  }
+}
+
+// ✅ Premium Filter Sheet Widget
+class _FilterSheet extends StatefulWidget {
+  final int currentMonth;
+  final int currentYear;
+  final Function(int month, int year) onApply;
+  final VoidCallback onReset;
+
+  const _FilterSheet({
+    required this.currentMonth,
+    required this.currentYear,
+    required this.onApply,
+    required this.onReset,
+  });
+
+  @override
+  State<_FilterSheet> createState() => _FilterSheetState();
+}
+
+class _FilterSheetState extends State<_FilterSheet> {
+  late int _tempMonth;
+  late int _tempYear;
+
+  @override
+  void initState() {
+    super.initState();
+    _tempMonth = widget.currentMonth;
+    _tempYear = widget.currentYear;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final isCurrentMonth = _tempMonth == now.month && _tempYear == now.year;
+    final isFuture =
+        DateTime(_tempYear, _tempMonth).isAfter(DateTime(now.year, now.month));
+    final isPast =
+        DateTime(_tempYear, _tempMonth).isBefore(DateTime(now.year, now.month));
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Iconsax.filter,
+                          color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Filter Budget',
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                if (!isCurrentMonth)
+                  TextButton(
+                    onPressed: () {
+                      widget.onReset();
+                      Navigator.pop(context);
+                    },
+                    child: Text(
+                      'Reset',
+                      style: GoogleFonts.inter(
+                        color: AppTheme.primaryGreen,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              children: [
+                // Status Indicator
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isCurrentMonth
+                        ? AppTheme.primaryGreen.withValues(alpha: 0.1)
+                        : isFuture
+                            ? Colors.blue.withValues(alpha: 0.1)
+                            : Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isCurrentMonth
+                          ? AppTheme.primaryGreen.withValues(alpha: 0.3)
+                          : isFuture
+                              ? Colors.blue.withValues(alpha: 0.3)
+                              : Colors.orange.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isCurrentMonth
+                            ? Iconsax.tick_circle
+                            : isFuture
+                                ? Iconsax.clock
+                                : Iconsax.archive_book,
+                        color: isCurrentMonth
+                            ? AppTheme.primaryGreen
+                            : isFuture
+                                ? Colors.blue
+                                : Colors.orange,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isCurrentMonth
+                                  ? '✅ Active Budget'
+                                  : isFuture
+                                      ? '⏰ Future Budget'
+                                      : '❌ Expired Budget',
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isCurrentMonth
+                                    ? AppTheme.primaryGreen
+                                    : isFuture
+                                        ? Colors.blue
+                                        : Colors.orange,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              isCurrentMonth
+                                  ? 'This budget is currently active'
+                                  : isFuture
+                                      ? 'This budget will activate in the future'
+                                      : 'This budget has expired',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Select Year',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildYearSelector(),
+                const SizedBox(height: 24),
+                Text(
+                  'Select Month',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildMonthSelector(),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    widget.onApply(_tempMonth, _tempYear);
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    'Apply Filter',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildYearSelector() {
+    final currentYear = DateTime.now().year;
+    final years = List.generate(10, (index) => currentYear + index);
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: years.map((year) {
+        final isSelected = year == _tempYear;
+        return GestureDetector(
+          onTap: () => setState(() => _tempYear = year),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: isSelected ? AppTheme.primaryGradient : null,
+              color: isSelected ? null : Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '$year',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : Colors.grey.shade700,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildMonthSelector() {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: List.generate(12, (index) {
+        final month = index + 1;
+        final isSelected = month == _tempMonth;
+        return GestureDetector(
+          onTap: () => setState(() => _tempMonth = month),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: isSelected ? AppTheme.primaryGradient : null,
+              color: isSelected ? null : Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              months[index],
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : Colors.grey.shade700,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

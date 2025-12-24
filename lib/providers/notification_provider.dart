@@ -67,7 +67,6 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
-  // FIXED: Delete notification with proper error handling and verification
   Future<void> deleteNotification(String notificationId) async {
     if (_notificationService == null) {
       debugPrint('❌ NotificationService is null, cannot delete');
@@ -77,11 +76,9 @@ class NotificationProvider with ChangeNotifier {
     debugPrint('🗑️ Provider: Deleting notification $notificationId');
 
     try {
-      // Delete from Firestore
       await _notificationService!.deleteNotification(notificationId);
       debugPrint('✅ Provider: Notification deleted from Firestore');
 
-      // Remove from local list immediately (optimistic update)
       _notifications.removeWhere((n) => n.id == notificationId);
       notifyListeners();
       debugPrint(
@@ -108,7 +105,6 @@ class NotificationProvider with ChangeNotifier {
         await _notificationService!.deleteNotification(notificationId);
       }
 
-      // Clear local list
       _notifications.clear();
       notifyListeners();
       debugPrint('✅ Provider: All notifications deleted');
@@ -118,7 +114,7 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
-  // ONLY METHOD FOR BUDGET NOTIFICATIONS - NO GOALS
+  // ✅ FIXED: ONLY CREATE NOTIFICATIONS FOR CURRENT MONTH BUDGETS
   Future<void> checkAndCreateNotifications({
     required double spent,
     required double limit,
@@ -135,26 +131,29 @@ class NotificationProvider with ChangeNotifier {
 
     final now = DateTime.now();
 
-    // ONLY create notifications for CURRENT month budgets
+    // ✅ CRITICAL: ONLY create notifications for CURRENT month budgets
     if (budgetMonth != now.month || budgetYear != now.year) {
-      debugPrint('⏭️ Skipping notification - Budget is not for current month');
+      debugPrint('⏭️ Skipping notification - Budget is NOT for current month');
+      debugPrint('   Budget: ${budgetMonth}/${budgetYear}');
+      debugPrint('   Current: ${now.month}/${now.year}');
       return;
     }
 
     final percentage = (spent / limit * 100);
 
-    debugPrint('🔍 Checking budget notifications:');
+    debugPrint('🔍 Checking budget notifications for CURRENT MONTH:');
     debugPrint('   Category: $category');
-    debugPrint('   Spent: \${spent.toStringAsFixed(2)}');
-    debugPrint('   Limit: \${limit.toStringAsFixed(2)}');
+    debugPrint('   Spent: \$${spent.toStringAsFixed(2)}');
+    debugPrint('   Limit: \$${limit.toStringAsFixed(2)}');
     debugPrint('   Percentage: ${percentage.toStringAsFixed(1)}%');
     debugPrint('   Threshold: $threshold%');
+    debugPrint('   Budget Month: $budgetMonth/$budgetYear ✅ CURRENT MONTH');
 
     // Check if already exceeded
     if (spent > limit) {
       debugPrint('🚨 BUDGET EXCEEDED! Checking for existing notification...');
 
-      // FIXED: Check by budgetId AND type to prevent duplicates
+      // Check by budgetId AND type to prevent duplicates
       final hasExceededNotif = _notifications.any((n) =>
           n.type == NotificationType.budgetExceeded && n.relatedId == budgetId);
 
@@ -178,7 +177,7 @@ class NotificationProvider with ChangeNotifier {
     } else if (percentage >= threshold) {
       debugPrint('⚠️ BUDGET WARNING! Checking for existing notification...');
 
-      // FIXED: Check by budgetId AND type to prevent duplicates
+      // Check by budgetId AND type to prevent duplicates
       final hasWarningNotif = _notifications.any((n) =>
           n.type == NotificationType.budgetWarning && n.relatedId == budgetId);
 
