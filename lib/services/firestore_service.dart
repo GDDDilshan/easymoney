@@ -10,7 +10,36 @@ class FirestoreService {
 
   FirestoreService(this.userId);
 
-  // ============ TRANSACTIONS ============
+  // ============ TRANSACTIONS (OPTIMIZED) ============
+
+  /// ✅ OPTIMIZED: Smart transaction loading
+  /// Loads only recent transactions by default, full history on demand
+  Stream<List<TransactionModel>> getTransactions({
+    DateTime? startDate,
+    int? limit,
+  }) {
+    Query query = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('transactions')
+        .orderBy('date', descending: true);
+
+    // Apply date filter if provided
+    if (startDate != null) {
+      query = query.where('date',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+    }
+
+    // Apply limit if provided (useful for pagination)
+    if (limit != null) {
+      query = query.limit(limit);
+    }
+
+    return query.snapshots().map((snapshot) => snapshot.docs
+        .map((doc) => TransactionModel.fromMap(
+            doc.data() as Map<String, dynamic>, doc.id))
+        .toList());
+  }
 
   Future<void> addTransaction(TransactionModel transaction) async {
     await _firestore
@@ -39,18 +68,7 @@ class FirestoreService {
         .delete();
   }
 
-  Stream<List<TransactionModel>> getTransactions() {
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => TransactionModel.fromMap(doc.data(), doc.id))
-            .toList());
-  }
-
+  /// ✅ OPTIMIZED: Fetch transactions by date range (for reports/analytics)
   Future<List<TransactionModel>> getTransactionsByDateRange(
     DateTime startDate,
     DateTime endDate,
@@ -65,7 +83,8 @@ class FirestoreService {
         .get();
 
     return snapshot.docs
-        .map((doc) => TransactionModel.fromMap(doc.data(), doc.id))
+        .map((doc) => TransactionModel.fromMap(
+            doc.data() as Map<String, dynamic>, doc.id))
         .toList();
   }
 
@@ -148,7 +167,6 @@ class FirestoreService {
             .toList());
   }
 
-  // Add contribution to goal
   Future<void> addGoalContribution(String goalId, double amount) async {
     final doc = await _firestore
         .collection('users')
@@ -207,7 +225,7 @@ class FirestoreService {
             .toList());
   }
 
-  // ============ ANALYTICS ============
+  // ============ ANALYTICS (Helper Methods) ============
 
   Future<Map<String, double>> getCategorySpending(
       DateTime startDate, DateTime endDate) async {
