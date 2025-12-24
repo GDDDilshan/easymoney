@@ -59,7 +59,7 @@ dependencies:
   local_auth: ^2.1.8
   
   # File Handling
-  file_picker: ^8.0.0 # Updated to match your lockfile
+  file_picker: ^8.0.0
   path: ^1.8.3
   
   # HTTP & API
@@ -70,6 +70,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
+  flutter_launcher_icons: ^0.13.1  # Icon generator package
 
 flutter:
   uses-material-design: true
@@ -85,3 +86,37 @@ flutter:
   #   - family: CustomIcons
   #     fonts:
   #       - asset: fonts/CustomIcons.ttf
+
+# ============================================
+# APP ICON CONFIGURATION
+# ============================================
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "app_icon.png"
+  
+  # Android Adaptive Icon (Material Design)
+  adaptive_icon_background: "#10B981"  # Your app's primary green
+  adaptive_icon_foreground: "app_icon.png"
+  
+  # iOS Settings
+  ios_content_scaling: "scaleAspectFit"
+  remove_alpha_ios: true
+  
+  # Web Icon
+  web:
+    generate: true
+    image_path: "app_icon.png"
+    background_color: "#10B981"
+    theme_color: "#10B981"
+    
+  # Windows Icon
+  windows:
+    generate: true
+    image_path: "app_icon.png"
+    icon_size: 48
+    
+  # macOS Icon
+  macos:
+    generate: true
+    image_path: "app_icon.png"
