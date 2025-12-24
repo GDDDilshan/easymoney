@@ -1,3 +1,6 @@
+// OPTIMIZED VERSION - Defaults to current month only, removed quick selections
+// This reduces Firebase costs by limiting default data range
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,16 +25,21 @@ class ExportReportScreen extends StatefulWidget {
 }
 
 class _ExportReportScreenState extends State<ExportReportScreen> {
-  DateTime? _startDate;
-  DateTime? _endDate;
+  late DateTime _startDate;
+  late DateTime _endDate;
   bool _isGenerating = false;
 
   @override
   void initState() {
     super.initState();
+    // ✅ OPTIMIZED: Default to current month only (from 1st to today)
     final now = DateTime.now();
-    _endDate = now;
-    _startDate = DateTime(now.year - 1, now.month, now.day);
+    _startDate = DateTime(now.year, now.month, 1); // First day of current month
+    _endDate = now; // Today
+
+    debugPrint('📅 Report initialized to current month:');
+    debugPrint('   Start: ${_startDate.toString()}');
+    debugPrint('   End: ${_endDate.toString()}');
   }
 
   @override
@@ -102,7 +110,7 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 60),
             child: Text(
-              'Create a professional financial report for your selected period',
+              'Create a financial report for your selected period',
               style: GoogleFonts.inter(
                 fontSize: 14,
                 color: Colors.grey,
@@ -132,13 +140,71 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Select Report Period',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Iconsax.calendar_1,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Report Period',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // ✅ Info Box showing current default
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Iconsax.info_circle,
+                  color: AppTheme.primaryGreen,
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Default: Current month (${DateFormat('MMM d').format(_startDate)} - ${DateFormat('MMM d, yyyy').format(_endDate)})',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppTheme.primaryGreen,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+
           const SizedBox(height: 20),
           Row(
             children: [
@@ -159,14 +225,45 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
               ),
             ],
           ),
+
           const SizedBox(height: 16),
-          _buildQuickDateButtons(),
+
+          // ✅ Date range summary
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Iconsax.calendar_tick,
+                  size: 16,
+                  color: Colors.grey.shade600,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${_endDate.difference(_startDate).inDays + 1} days selected',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     ).animate().fadeIn(delay: 200.ms);
   }
 
-  Widget _buildDatePickerField(String label, DateTime? date, bool isStart) {
+  Widget _buildDatePickerField(String label, DateTime date, bool isStart) {
     return GestureDetector(
       onTap: () => _selectDate(isStart),
       child: Container(
@@ -198,13 +295,10 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    date != null
-                        ? DateFormat('MMM d, yyyy').format(date)
-                        : 'Not selected',
+                    DateFormat('MMM d, yyyy').format(date),
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: date != null ? null : Colors.grey.shade500,
                     ),
                   ),
                 ),
@@ -216,83 +310,11 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
     );
   }
 
-  Widget _buildQuickDateButtons() {
-    final now = DateTime.now();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick Select',
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            color: Colors.grey,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _buildQuickButton('This Month', () {
-              setState(() {
-                _startDate = DateTime(now.year, now.month, 1);
-                _endDate = now;
-              });
-            }),
-            _buildQuickButton('Last 3 Months', () {
-              setState(() {
-                _startDate = DateTime(now.year, now.month - 3, now.day);
-                _endDate = now;
-              });
-            }),
-            _buildQuickButton('This Year', () {
-              setState(() {
-                _startDate = DateTime(now.year, 1, 1);
-                _endDate = now;
-              });
-            }),
-            _buildQuickButton('Last Year', () {
-              setState(() {
-                _startDate = DateTime(now.year - 1, 1, 1);
-                _endDate = DateTime(now.year - 1, 12, 31);
-              });
-            }),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickButton(String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppTheme.primaryGreen.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: AppTheme.primaryGreen.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.primaryGreen,
-          ),
-        ),
-      ),
-    );
-  }
-
   Future<void> _selectDate(bool isStart) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: isStart ? _startDate ?? now : _endDate ?? now,
+      initialDate: isStart ? _startDate : _endDate,
       firstDate: DateTime(2000),
       lastDate: now,
     );
@@ -300,7 +322,7 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
       setState(() {
         if (isStart) {
           _startDate = picked;
-          if (_endDate != null && picked.isAfter(_endDate!)) {
+          if (picked.isAfter(_endDate)) {
             _endDate = picked;
           }
         } else {
@@ -311,25 +333,18 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
   }
 
   Widget _buildSummaryPreview() {
-    if (_startDate == null || _endDate == null) {
-      return const SizedBox.shrink();
-    }
-
     final transactionProvider = Provider.of<TransactionProvider>(context);
-    final budgetProvider = Provider.of<BudgetProvider>(context);
-    final goalProvider = Provider.of<GoalProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context);
     final currency = authProvider.selectedCurrency;
 
-    final income = transactionProvider.getTotalIncome(_startDate!, _endDate!);
-    final expenses =
-        transactionProvider.getTotalExpenses(_startDate!, _endDate!);
+    final income = transactionProvider.getTotalIncome(_startDate, _endDate);
+    final expenses = transactionProvider.getTotalExpenses(_startDate, _endDate);
     final balance = income - expenses;
 
     final transactionCount = transactionProvider.transactions
         .where((t) =>
-            t.date.isAfter(_startDate!.subtract(const Duration(days: 1))) &&
-            t.date.isBefore(_endDate!.add(const Duration(days: 1))))
+            t.date.isAfter(_startDate.subtract(const Duration(days: 1))) &&
+            t.date.isBefore(_endDate.add(const Duration(days: 1))))
         .length;
 
     return Container(
@@ -349,12 +364,29 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Report Summary',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Iconsax.document_text,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Report Summary',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(
@@ -474,9 +506,7 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
             ],
           ),
           child: ElevatedButton(
-            onPressed: _startDate == null || _endDate == null || _isGenerating
-                ? null
-                : _generateAndExportReport,
+            onPressed: _isGenerating ? null : _generateAndExportReport,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               elevation: 0,
@@ -515,8 +545,6 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
   }
 
   Future<void> _generateAndExportReport() async {
-    if (_startDate == null || _endDate == null) return;
-
     setState(() => _isGenerating = true);
 
     try {
@@ -532,7 +560,7 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
 
       final pdf = pw.Document();
 
-      // Generate PDF with all sections - NO DATA LIMITATION
+      // Generate PDF with all sections
       await _generatePdfReport(
         pdf,
         user?.displayName ?? 'User',
@@ -573,20 +601,19 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
     BudgetProvider budgetProvider,
     GoalProvider goalProvider,
   ) async {
-    final income = transactionProvider.getTotalIncome(_startDate!, _endDate!);
-    final expenses =
-        transactionProvider.getTotalExpenses(_startDate!, _endDate!);
+    final income = transactionProvider.getTotalIncome(_startDate, _endDate);
+    final expenses = transactionProvider.getTotalExpenses(_startDate, _endDate);
     final balance = income - expenses;
 
     final transactions = transactionProvider.transactions
         .where((t) =>
-            t.date.isAfter(_startDate!.subtract(const Duration(days: 1))) &&
-            t.date.isBefore(_endDate!.add(const Duration(days: 1))))
+            t.date.isAfter(_startDate.subtract(const Duration(days: 1))) &&
+            t.date.isBefore(_endDate.add(const Duration(days: 1))))
         .toList()
       ..sort((a, b) => b.date.compareTo(a.date));
 
     final categorySpending =
-        transactionProvider.getCategorySpending(_startDate!, _endDate!);
+        transactionProvider.getCategorySpending(_startDate, _endDate);
     final sortedCategories = categorySpending.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -605,7 +632,7 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
             ),
             pw.SizedBox(height: 8),
             pw.Text(
-              'Period: ${DateFormat('MMM d, yyyy').format(_startDate!)} - ${DateFormat('MMM d, yyyy').format(_endDate!)}',
+              'Period: ${DateFormat('MMM d, yyyy').format(_startDate)} - ${DateFormat('MMM d, yyyy').format(_endDate)}',
               style: pw.TextStyle(
                   fontSize: 14, color: PdfColor.fromHex('#666666')),
             ),
