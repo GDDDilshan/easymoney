@@ -1,5 +1,4 @@
-// FILE: lib/widgets/category_expenses_chart.dart
-// FIXED VERSION - Dark theme calendar date picker now clearly visible
+// FIXED VERSION - Default shows CURRENT WEEK (Monday-Sunday), not past 7 days
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -23,7 +22,8 @@ class CategoryExpensesChart extends StatefulWidget {
 class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
   late DateTime _startDate;
   late DateTime _endDate;
-  int _selectedPeriod = 0; // 0: 30 days, 1: 3 months, 2: 6 months, 3: Custom
+  int _selectedPeriod =
+      0; // 0: This Week, 1: 30 days, 2: 3 months, 3: 6 months, 4: Custom
 
   @override
   void initState() {
@@ -31,28 +31,69 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
     _initializeDates();
   }
 
+  // ✅ FIXED: Initialize to CURRENT WEEK (Monday to Sunday)
   void _initializeDates() {
     final now = DateTime.now();
-    _endDate = now;
-    _startDate = now.subtract(const Duration(days: 30));
+
+    // Calculate current week: Monday to Sunday
+    final weekday = now.weekday; // 1 = Monday, 7 = Sunday
+    final mondayOffset = weekday - 1; // Days since Monday
+
+    // Start of current week (Monday at 00:00:00)
+    _startDate = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: mondayOffset));
+
+    // End of current week (Sunday at 23:59:59)
+    final sundayOffset = 7 - weekday; // Days until Sunday
+    _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59)
+        .add(Duration(days: sundayOffset));
+
+    debugPrint('📅 Initialized Current Week:');
+    debugPrint('   Start (Monday): ${_startDate.toString()}');
+    debugPrint('   End (Sunday): ${_endDate.toString()}');
   }
 
   void _updatePeriod(int period) {
     final now = DateTime.now();
     setState(() {
       _selectedPeriod = period;
-      _endDate = now;
+
       switch (period) {
-        case 0: // 30 days
+        case 0: // This Week (Monday to Sunday)
+          final weekday = now.weekday;
+          final mondayOffset = weekday - 1;
+          _startDate = DateTime(now.year, now.month, now.day)
+              .subtract(Duration(days: mondayOffset));
+
+          final sundayOffset = 7 - weekday;
+          _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59)
+              .add(Duration(days: sundayOffset));
+
+          debugPrint('📅 Selected: This Week');
+          debugPrint('   Start: ${_startDate.toString()}');
+          debugPrint('   End: ${_endDate.toString()}');
+          break;
+
+        case 1: // Last 30 days
+          _endDate = now;
           _startDate = now.subtract(const Duration(days: 30));
+          debugPrint('📅 Selected: Last 30 Days');
           break;
-        case 1: // 3 months
+
+        case 2: // Last 3 months
+          _endDate = now;
           _startDate = DateTime(now.year, now.month - 3, now.day);
+          debugPrint('📅 Selected: Last 3 Months');
           break;
-        case 2: // 6 months
+
+        case 3: // Last 6 months
+          _endDate = now;
           _startDate = DateTime(now.year, now.month - 6, now.day);
+          debugPrint('📅 Selected: Last 6 Months');
           break;
-        case 3: // Custom (keep current selection)
+
+        case 4: // Custom (keep current selection)
+          debugPrint('📅 Selected: Custom Range');
           break;
       }
     });
@@ -70,11 +111,12 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
       setState(() {
         _startDate = picked.start;
         _endDate = picked.end;
+        _selectedPeriod = 4; // Set to custom
       });
     }
   }
 
-  // ✅ FIXED: Calendar with orange theme for BOTH dark and light modes
+  // Calendar with orange theme for dark mode, green for light mode
   Future<DateTimeRange?> showDateRangeDialog({
     required BuildContext context,
     required DateTimeRange initialDateRange,
@@ -91,268 +133,175 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            // ✅ FIXED: Premium orange color scheme for BOTH themes
             colorScheme: isDark
                 ? ColorScheme.dark(
-                    // Primary colors for selected dates - ORANGE!
-                    primary: const Color(0xFFF97316), // Orange-500
-                    onPrimary:
-                        const Color(0xFF0F172A), // BLACK text on orange ✅
-
-                    // ✅ Selected date range background - Premium Orange Glow
-                    primaryContainer: const Color(0xFFF97316)
-                        .withValues(alpha: 0.3), // Soft orange bg
-                    onPrimaryContainer:
-                        const Color(0xFF0F172A), // BLACK text on orange bg ✅
-
-                    // Background colors
+                    primary: const Color(0xFFF97316),
+                    onPrimary: const Color(0xFF0F172A),
+                    primaryContainer:
+                        const Color(0xFFF97316).withValues(alpha: 0.3),
+                    onPrimaryContainer: const Color(0xFF0F172A),
                     surface: const Color(0xFF1E293B),
-                    onSurface: Colors.white, // BRIGHTEST WHITE for ALL dates ✅
+                    onSurface: Colors.white,
                     background: const Color(0xFF0F172A),
-                    onBackground: Colors.white, // BRIGHTEST WHITE ✅
-
-                    // ✅ Date cells that are not selected
+                    onBackground: Colors.white,
                     surfaceVariant: const Color(0xFF334155),
-                    onSurfaceVariant: Colors.white, // BRIGHTEST WHITE ✅
-
-                    // Secondary colors - Amber accent
-                    secondary: const Color(0xFFFB923C), // Orange-400
-                    onSecondary: const Color(0xFF0F172A), // BLACK text ✅
-
-                    // ✅ Outline for date cells
+                    onSurfaceVariant: Colors.white,
+                    secondary: const Color(0xFFFB923C),
+                    onSecondary: const Color(0xFF0F172A),
                     outline: const Color(0xFF475569),
                   )
                 : ColorScheme.light(
-                    // ✅ LIGHT THEME - Green selected dates (original app theme)
-                    primary: AppTheme.primaryGreen, // Keep green
-                    onPrimary: Colors.white, // WHITE text on green
-
-                    // ✅ Selected date range background - Green
-                    primaryContainer: AppTheme.primaryGreen
-                        .withValues(alpha: 0.2), // Light green bg
-                    onPrimaryContainer:
-                        const Color(0xFF0F172A), // BLACK text on light green bg
-
-                    // Background colors
+                    primary: AppTheme.primaryGreen,
+                    onPrimary: Colors.white,
+                    primaryContainer:
+                        AppTheme.primaryGreen.withValues(alpha: 0.2),
+                    onPrimaryContainer: const Color(0xFF0F172A),
                     surface: Colors.white,
-                    onSurface: const Color(
-                        0xFF0F172A), // Black text for unselected dates
+                    onSurface: const Color(0xFF0F172A),
                     background: const Color(0xFFF1F5F9),
                     onBackground: const Color(0xFF0F172A),
-
-                    // Date cells
                     surfaceVariant: const Color(0xFFF8FAFC),
                     onSurfaceVariant: const Color(0xFF0F172A),
-
-                    // Secondary colors
                     secondary: AppTheme.primaryTeal,
                     onSecondary: Colors.white,
-
-                    // Outline
                     outline: Colors.grey.shade300,
                   ),
-
-            // ✅ FIXED: Text theme - white for dark mode, black for light mode
             textTheme: isDark
                 ? GoogleFonts.interTextTheme(ThemeData.dark().textTheme)
                     .copyWith(
-                    // Headers (month/year)
                     displayLarge: GoogleFonts.poppins(
-                      color: Colors.white, // Brightest white
-                      fontWeight: FontWeight.bold,
-                      fontSize: 32,
-                    ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 32),
                     displayMedium: GoogleFonts.poppins(
-                      color: Colors.white, // Brightest white
-                      fontWeight: FontWeight.bold,
-                      fontSize: 28,
-                    ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 28),
                     displaySmall: GoogleFonts.poppins(
-                      color: Colors.white, // Brightest white
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                    ),
-
-                    // Titles
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24),
                     headlineLarge: GoogleFonts.poppins(
-                      color: Colors.white, // Brightest white
-                      fontWeight: FontWeight.bold,
-                      fontSize: 28,
-                    ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 28),
                     headlineMedium: GoogleFonts.poppins(
-                      color: Colors.white, // Brightest white
-                      fontWeight: FontWeight.w600,
-                      fontSize: 20,
-                    ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20),
                     headlineSmall: GoogleFonts.poppins(
-                      color: Colors.white, // Brightest white
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                    ),
-
-                    // Body text (dates) - BRIGHTEST WHITE
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18),
                     titleLarge: GoogleFonts.inter(
-                      color: Colors.white, // Brightest white for dates
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16),
                     titleMedium: GoogleFonts.inter(
-                      color: Colors.white, // Brightest white for dates
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14),
                     titleSmall: GoogleFonts.inter(
-                      color: Colors.white, // Brightest white
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                    ),
-
-                    // Date numbers - BRIGHTEST WHITE
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12),
                     bodyLarge: GoogleFonts.inter(
-                      color: Colors.white, // Brightest white for dates
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500),
                     bodyMedium: GoogleFonts.inter(
-                      color: Colors.white, // Brightest white for dates
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    bodySmall: GoogleFonts.inter(
-                      color: Colors.white, // Brightest white
-                      fontSize: 12,
-                    ),
-
-                    // Labels (day names: Mon, Tue, Wed, etc.) - BRIGHTEST WHITE
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500),
+                    bodySmall:
+                        GoogleFonts.inter(color: Colors.white, fontSize: 12),
                     labelLarge: GoogleFonts.inter(
-                      color: Colors.white, // Brightest white
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14),
                     labelMedium: GoogleFonts.inter(
-                      color: Colors.white, // Brightest white
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                    ),
-                    labelSmall: GoogleFonts.inter(
-                      color: Colors.white, // Brightest white
-                      fontSize: 10,
-                    ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12),
+                    labelSmall:
+                        GoogleFonts.inter(color: Colors.white, fontSize: 10),
                   )
                 : GoogleFonts.interTextTheme(ThemeData.light().textTheme)
                     .copyWith(
-                    // ✅ LIGHT MODE - BLACK text for all dates
                     displayLarge: GoogleFonts.poppins(
-                      color: const Color(0xFF0F172A), // Black
-                      fontWeight: FontWeight.bold,
-                      fontSize: 32,
-                    ),
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 32),
                     displayMedium: GoogleFonts.poppins(
-                      color: const Color(0xFF0F172A), // Black
-                      fontWeight: FontWeight.bold,
-                      fontSize: 28,
-                    ),
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 28),
                     displaySmall: GoogleFonts.poppins(
-                      color: const Color(0xFF0F172A), // Black
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                    ),
-
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24),
                     headlineLarge: GoogleFonts.poppins(
-                      color: const Color(0xFF0F172A), // Black
-                      fontWeight: FontWeight.bold,
-                      fontSize: 28,
-                    ),
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 28),
                     headlineMedium: GoogleFonts.poppins(
-                      color: const Color(0xFF0F172A), // Black
-                      fontWeight: FontWeight.w600,
-                      fontSize: 20,
-                    ),
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20),
                     headlineSmall: GoogleFonts.poppins(
-                      color: const Color(0xFF0F172A), // Black
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                    ),
-
-                    // Body text - BLACK for unselected dates
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18),
                     titleLarge: GoogleFonts.inter(
-                      color: const Color(0xFF0F172A), // Black
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16),
                     titleMedium: GoogleFonts.inter(
-                      color: const Color(0xFF0F172A), // Black
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14),
                     titleSmall: GoogleFonts.inter(
-                      color: const Color(0xFF0F172A), // Black
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                    ),
-
-                    // Date numbers - BLACK
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12),
                     bodyLarge: GoogleFonts.inter(
-                      color: const Color(0xFF0F172A), // Black
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
+                        color: const Color(0xFF0F172A),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500),
                     bodyMedium: GoogleFonts.inter(
-                      color: const Color(0xFF0F172A), // Black
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
+                        color: const Color(0xFF0F172A),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500),
                     bodySmall: GoogleFonts.inter(
-                      color: const Color(0xFF0F172A), // Black
-                      fontSize: 12,
-                    ),
-
-                    // Labels - BLACK
+                        color: const Color(0xFF0F172A), fontSize: 12),
                     labelLarge: GoogleFonts.inter(
-                      color: const Color(0xFF0F172A), // Black
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14),
                     labelMedium: GoogleFonts.inter(
-                      color: const Color(0xFF0F172A), // Black
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                    ),
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12),
                     labelSmall: GoogleFonts.inter(
-                      color: const Color(0xFF0F172A), // Black
-                      fontSize: 10,
-                    ),
+                        color: const Color(0xFF0F172A), fontSize: 10),
                   ),
-
-            // ✅ Dialog background
             dialogBackgroundColor:
                 isDark ? const Color(0xFF1E293B) : Colors.white,
-
-            // ✅ Divider color (between dates)
             dividerColor:
                 isDark ? const Color(0xFF475569) : Colors.grey.shade300,
-
-            // ✅ Card theme for date cells
             cardTheme: CardThemeData(
-              color: isDark ? const Color(0xFF334155) : Colors.white,
-              elevation: 0,
-            ),
-
-            // ✅ Icon theme (arrows, etc.)
+                color: isDark ? const Color(0xFF334155) : Colors.white,
+                elevation: 0),
             iconTheme: IconThemeData(
-              color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF0F172A),
-              size: 24,
-            ),
-
-            // ✅ Button styles - Orange for dark, Green for light
+                color:
+                    isDark ? const Color(0xFFF1F5F9) : const Color(0xFF0F172A),
+                size: 24),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor:
                     isDark ? const Color(0xFFF97316) : AppTheme.primaryGreen,
                 textStyle: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
+                    fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -368,7 +317,6 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
     final authProvider = Provider.of<AuthProvider>(context);
     final currency = authProvider.selectedCurrency;
 
-    // Get category spending data
     final categorySpending =
         transactionProvider.getCategorySpending(_startDate, _endDate);
 
@@ -378,8 +326,6 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
 
     final totalExpenses =
         categorySpending.values.fold<double>(0, (sum, value) => sum + value);
-
-    // Get ALL categories with spending (no limit)
     final sortedCategories = categorySpending.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -400,31 +346,21 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           _buildHeader(currency, totalExpenses)
               .animate()
               .fadeIn(delay: 100.ms)
               .slideX(begin: -0.2, end: 0),
-
           const SizedBox(height: 24),
-
-          // Period Selector
           _buildPeriodSelector()
               .animate()
               .fadeIn(delay: 200.ms)
               .slideY(begin: 0.2, end: 0),
-
           const SizedBox(height: 24),
-
-          // Donut Chart
           _buildDonutChart(sortedCategories, totalExpenses)
               .animate()
               .fadeIn(delay: 300.ms)
               .scale(delay: 300.ms),
-
           const SizedBox(height: 28),
-
-          // Show ALL categories with data
           _buildCategoryLegend(sortedCategories, currency, totalExpenses)
               .animate()
               .fadeIn(delay: 400.ms)
@@ -451,7 +387,7 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Last ${_getPeriodLabel()}',
+              _getPeriodLabel(),
               style: GoogleFonts.inter(
                 fontSize: 12,
                 color: Colors.grey,
@@ -492,13 +428,15 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         children: [
-          _buildPeriodButton('30 Days', 0),
+          _buildPeriodButton('This Week', 0),
           const SizedBox(width: 10),
-          _buildPeriodButton('3 Months', 1),
+          _buildPeriodButton('30 Days', 1),
           const SizedBox(width: 10),
-          _buildPeriodButton('6 Months', 2),
+          _buildPeriodButton('3 Months', 2),
           const SizedBox(width: 10),
-          _buildPeriodButton('Custom', 3, onTap: _showCustomDatePicker),
+          _buildPeriodButton('6 Months', 3),
+          const SizedBox(width: 10),
+          _buildPeriodButton('Custom', 4, onTap: _showCustomDatePicker),
         ],
       ),
     );
@@ -520,10 +458,7 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
                   : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
           border: !isSelected
-              ? Border.all(
-                  color: Colors.grey.shade300,
-                  width: 1,
-                )
+              ? Border.all(color: Colors.grey.shade300, width: 1)
               : null,
           boxShadow: isSelected
               ? [
@@ -583,7 +518,6 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
             ),
           ),
           const SizedBox(height: 16),
-          // Center text
           Column(
             children: [
               Text(
@@ -614,21 +548,18 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
     double totalExpenses,
   ) {
     return Column(
-      children: [
-        // Show ALL categories (no limit)
-        ...sortedCategories.map((entry) {
-          final percent = (entry.value / totalExpenses * 100);
-          final color = Helpers.getCategoryColor(entry.key);
+      children: sortedCategories.map((entry) {
+        final percent = (entry.value / totalExpenses * 100);
+        final color = Helpers.getCategoryColor(entry.key);
 
-          return _buildCategoryRow(
-            category: entry.key,
-            amount: entry.value,
-            percentage: percent,
-            color: color,
-            currency: currency,
-          );
-        }).toList(),
-      ],
+        return _buildCategoryRow(
+          category: entry.key,
+          amount: entry.value,
+          percentage: percent,
+          color: color,
+          currency: currency,
+        );
+      }).toList(),
     );
   }
 
@@ -645,7 +576,6 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
         children: [
           Row(
             children: [
-              // Color indicator
               Container(
                 width: 12,
                 height: 12,
@@ -662,8 +592,6 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
                 ),
               ),
               const SizedBox(width: 12),
-
-              // Category name and percentage
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -686,8 +614,6 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
                   ],
                 ),
               ),
-
-              // Amount
               Text(
                 Helpers.formatCurrency(amount, currency),
                 style: GoogleFonts.poppins(
@@ -699,7 +625,6 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
             ],
           ),
           const SizedBox(height: 12),
-          // Progress bar
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
@@ -749,7 +674,7 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
           ),
           const SizedBox(height: 8),
           Text(
-            'No expenses recorded for the selected period',
+            'No expenses recorded for ${_getPeriodLabel()}',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 12,
@@ -764,15 +689,21 @@ class _CategoryExpensesChartState extends State<CategoryExpensesChart> {
   String _getPeriodLabel() {
     switch (_selectedPeriod) {
       case 0:
-        return '30 Days';
+        return 'This Week (${_formatDateShort(_startDate)} - ${_formatDateShort(_endDate)})';
       case 1:
-        return '3 Months';
+        return 'Last 30 Days';
       case 2:
-        return '6 Months';
+        return 'Last 3 Months';
       case 3:
-        return '${_startDate.day}/${_startDate.month} - ${_endDate.day}/${_endDate.month}';
+        return 'Last 6 Months';
+      case 4:
+        return 'Custom (${_formatDateShort(_startDate)} - ${_formatDateShort(_endDate)})';
       default:
-        return '30 Days';
+        return 'This Week';
     }
+  }
+
+  String _formatDateShort(DateTime date) {
+    return '${date.day}/${date.month}';
   }
 }
