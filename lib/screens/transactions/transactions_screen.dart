@@ -1,3 +1,6 @@
+// OPTIMIZED VERSION - Defaults to TODAY, removes "All" tab to reduce Firebase queries
+// Only shows: Today, This Week, This Month
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -33,7 +36,8 @@ class _TransactionsScreenState extends State<TransactionsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    // FIXED: Changed from 4 tabs to 3 tabs (removed "All")
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -305,16 +309,6 @@ class _TransactionsScreenState extends State<TransactionsScreen>
                         ? null
                         : AppTheme.primaryGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
-                    boxShadow: hasActiveFilters
-                        ? [
-                            BoxShadow(
-                              color:
-                                  AppTheme.primaryGreen.withValues(alpha: 0.4),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
                   ),
                   child: Icon(
                     Iconsax.filter,
@@ -336,17 +330,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 1.5),
                     ),
-                  )
-                      .animate(onPlay: (controller) => controller.repeat())
-                      .scale(
-                          duration: 1000.ms,
-                          begin: const Offset(1, 1),
-                          end: const Offset(1.2, 1.2))
-                      .then()
-                      .scale(
-                          duration: 1000.ms,
-                          begin: const Offset(1.2, 1.2),
-                          end: const Offset(1, 1)),
+                  ),
                 ),
             ],
           ),
@@ -406,7 +390,6 @@ class _TransactionsScreenState extends State<TransactionsScreen>
           fontWeight: FontWeight.w600,
         ),
         tabs: const [
-          Tab(text: 'All'),
           Tab(text: 'Today'),
           Tab(text: 'This Week'),
           Tab(text: 'This Month'),
@@ -713,10 +696,9 @@ class _TransactionsScreenState extends State<TransactionsScreen>
           .toList();
     } else {
       final now = DateTime.now();
+      // FIXED: Changed tab indices (removed "All" tab)
       switch (_tabController.index) {
-        case 0:
-          break;
-        case 1:
+        case 0: // Today
           transactions = transactions
               .where((t) =>
                   t.date.year == now.year &&
@@ -724,14 +706,14 @@ class _TransactionsScreenState extends State<TransactionsScreen>
                   t.date.day == now.day)
               .toList();
           break;
-        case 2:
+        case 1: // This Week
           final weekStart = now.subtract(Duration(days: now.weekday - 1));
           transactions = transactions
               .where((t) =>
                   t.date.isAfter(weekStart.subtract(const Duration(days: 1))))
               .toList();
           break;
-        case 3:
+        case 2: // This Month
           transactions = transactions
               .where(
                   (t) => t.date.year == now.year && t.date.month == now.month)
@@ -838,7 +820,7 @@ class _TransactionsScreenState extends State<TransactionsScreen>
   }
 }
 
-// Filter Sheet Widget (remains the same - no changes needed)
+// Filter Sheet Widget (Keep the same as before)
 class _FilterSheet extends StatefulWidget {
   final String selectedCategory;
   final DateTime? startDate;
