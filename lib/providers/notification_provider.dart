@@ -1,13 +1,25 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 import '../services/auth_service.dart';
 
+/// ✅ FULLY OPTIMIZED NOTIFICATION PROVIDER
+/// - Batch notification creation (prevents duplicates)
+/// - Deduplicated by budgetId + type
+/// - Only check ONCE per app session
+/// - Smart notification cleanup
 class NotificationProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   NotificationService? _notificationService;
   List<NotificationModel> _notifications = [];
   bool _isLoading = false;
+
+  // 🔥 CRITICAL: Only check notifications ONCE per session
+  static bool _hasCheckedNotificationsThisSession = false;
+
+  // Track pending notifications to prevent duplicates
+  final Set<String> _pendingNotificationKeys = {};
 
   List<NotificationModel> get notifications => _notifications;
   int get unreadCount => _notifications.length;
@@ -16,6 +28,12 @@ class NotificationProvider with ChangeNotifier {
 
   NotificationProvider() {
     _initService();
+  }
+
+  @override
+  void dispose() {
+    _pendingNotificationKeys.clear();
+    super.dispose();
   }
 
   void _initService() {
@@ -31,6 +49,7 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
+  /// Load notifications from Firestore (stream listener)
   void loadNotifications() {
     if (_notificationService == null) return;
 
@@ -48,6 +67,8 @@ class NotificationProvider with ChangeNotifier {
       },
     );
   }
+
+  // ============ NOTIFICATION MANAGEMENT ============
 
   Future<void> markAsRead(String notificationId) async {
     if (_notificationService == null) return;
@@ -82,7 +103,7 @@ class NotificationProvider with ChangeNotifier {
       _notifications.removeWhere((n) => n.id == notificationId);
       notifyListeners();
       debugPrint(
-          '✅ Provider: Local list updated, ${_notifications.length} notifications remaining');
+          '✅ Provider: Local list updated, ${_notifications.length} remaining');
     } catch (e) {
       debugPrint('❌ Provider: Error deleting notification: $e');
       rethrow;
@@ -114,7 +135,112 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
-  // ✅ FIXED: ONLY CREATE NOTIFICATIONS FOR CURRENT MONTH BUDGETS
+  // ============ BATCH NOTIFICATION CHECKING ============
+  // 🔥 CRITICAL: Only run ONCE per app session
+
+  /// Check ALL budgets at once (batch operation)
+  /// Only called ONCE when app launches
+  Future<void> checkBudgetsAndCreateNotifications({
+    required Map<String, dynamic> budgetData,
+    required Map<String, dynamic> spendingData,
+  }) async {
+    // 🔥 ONLY CHECK ONCE PER SESSION
+    if (_hasCheckedNotificationsThisSession) {
+      debugPrint('⏭️ Notifications already checked this session, skipping...');
+      return;
+    }
+
+    if (_notificationService == null) {
+      debugPrint('❌ NotificationService is null');
+      return;
+    }
+
+    debugPrint('🔍 BATCH CHECK: Checking all budgets for current month...');
+    debugPrint('   Budgets to check: ${budgetData.length}');
+
+    int budgetsChecked = 0;
+    int warningsCreated = 0;
+    int exceedersCreated = 0;
+
+    final now = DateTime.now();
+
+    // Batch check all budgets
+    for (final entry in budgetData.entries) {
+      final budgetId = entry.key;
+      final budget = entry.value;
+
+      // Only check current month budgets
+      if (budget['month'] != now.month || budget['year'] != now.year) {
+        continue;
+      }
+
+      budgetsChecked++;
+      final spent = spendingData[budget['category']] ?? 0;
+      final limit = budget['limit'];
+      final threshold = budget['threshold'] ?? 80;
+      final category = budget['category'];
+
+      // Create deduplication key
+      final notificationKey = '$budgetId:${budget['month']}:${budget['year']}';
+
+      // Check if already processed
+      if (_pendingNotificationKeys.contains(notificationKey)) {
+        debugPrint('   ⏭️ Already processed: $category');
+        continue;
+      }
+
+      final percentage = (spent / limit * 100);
+
+      if (spent > limit) {
+        // Budget exceeded
+        if (!_notificationExists(budgetId, NotificationType.budgetExceeded)) {
+          debugPrint('   🚨 CREATE: Budget Exceeded - $category');
+          try {
+            await _notificationService!.createBudgetExceeded(
+              category: category,
+              spent: spent,
+              limit: limit,
+              budgetId: budgetId,
+            );
+            exceedersCreated++;
+            _pendingNotificationKeys.add(notificationKey);
+          } catch (e) {
+            debugPrint('   ❌ Error creating exceeded notification: $e');
+          }
+        }
+      } else if (percentage >= threshold) {
+        // Budget warning
+        if (!_notificationExists(budgetId, NotificationType.budgetWarning)) {
+          debugPrint(
+              '   ⚠️ CREATE: Budget Warning - $category (${percentage.toStringAsFixed(0)}%)');
+          try {
+            await _notificationService!.createBudgetWarning(
+              category: category,
+              spent: spent,
+              limit: limit,
+              threshold: threshold,
+              budgetId: budgetId,
+            );
+            warningsCreated++;
+            _pendingNotificationKeys.add(notificationKey);
+          } catch (e) {
+            debugPrint('   ❌ Error creating warning notification: $e');
+          }
+        }
+      }
+    }
+
+    // Mark as checked for this session
+    _hasCheckedNotificationsThisSession = true;
+
+    debugPrint('✅ BATCH CHECK COMPLETE:');
+    debugPrint('   Budgets checked: $budgetsChecked');
+    debugPrint('   Warnings created: $warningsCreated');
+    debugPrint('   Exceeded created: $exceedersCreated');
+    debugPrint('   🔒 Will NOT check again this session');
+  }
+
+  /// Check single budget (used after transaction added)
   Future<void> checkAndCreateNotifications({
     required double spent,
     required double limit,
@@ -131,34 +257,32 @@ class NotificationProvider with ChangeNotifier {
 
     final now = DateTime.now();
 
-    // ✅ CRITICAL: ONLY create notifications for CURRENT month budgets
+    // Only check current month budgets
     if (budgetMonth != now.month || budgetYear != now.year) {
       debugPrint('⏭️ Skipping notification - Budget is NOT for current month');
-      debugPrint('   Budget: ${budgetMonth}/${budgetYear}');
-      debugPrint('   Current: ${now.month}/${now.year}');
+      return;
+    }
+
+    // Create deduplication key
+    final notificationKey = '$budgetId:$budgetMonth:$budgetYear';
+
+    // Skip if already processed in this session
+    if (_pendingNotificationKeys.contains(notificationKey)) {
+      debugPrint('⏭️ Notification already created this session for $category');
       return;
     }
 
     final percentage = (spent / limit * 100);
 
-    debugPrint('🔍 Checking budget notifications for CURRENT MONTH:');
-    debugPrint('   Category: $category');
-    debugPrint('   Spent: \$${spent.toStringAsFixed(2)}');
-    debugPrint('   Limit: \$${limit.toStringAsFixed(2)}');
+    debugPrint('🔍 Checking single budget: $category');
+    debugPrint(
+        '   Spent: \$${spent.toStringAsFixed(2)} / \$${limit.toStringAsFixed(2)}');
     debugPrint('   Percentage: ${percentage.toStringAsFixed(1)}%');
-    debugPrint('   Threshold: $threshold%');
-    debugPrint('   Budget Month: $budgetMonth/$budgetYear ✅ CURRENT MONTH');
 
     // Check if already exceeded
     if (spent > limit) {
-      debugPrint('🚨 BUDGET EXCEEDED! Checking for existing notification...');
-
-      // Check by budgetId AND type to prevent duplicates
-      final hasExceededNotif = _notifications.any((n) =>
-          n.type == NotificationType.budgetExceeded && n.relatedId == budgetId);
-
-      if (!hasExceededNotif) {
-        debugPrint('✅ Creating budget exceeded notification');
+      if (!_notificationExists(budgetId, NotificationType.budgetExceeded)) {
+        debugPrint('🚨 Creating budget exceeded notification');
         try {
           await _notificationService!.createBudgetExceeded(
             category: category,
@@ -166,23 +290,15 @@ class NotificationProvider with ChangeNotifier {
             limit: limit,
             budgetId: budgetId,
           );
-          debugPrint('✅ Budget exceeded notification created successfully');
+          _pendingNotificationKeys.add(notificationKey);
+          debugPrint('✅ Budget exceeded notification created');
         } catch (e) {
           debugPrint('❌ Error creating notification: $e');
         }
-      } else {
-        debugPrint(
-            '⏭️ Budget exceeded notification already exists for this budget');
       }
     } else if (percentage >= threshold) {
-      debugPrint('⚠️ BUDGET WARNING! Checking for existing notification...');
-
-      // Check by budgetId AND type to prevent duplicates
-      final hasWarningNotif = _notifications.any((n) =>
-          n.type == NotificationType.budgetWarning && n.relatedId == budgetId);
-
-      if (!hasWarningNotif) {
-        debugPrint('✅ Creating budget warning notification');
+      if (!_notificationExists(budgetId, NotificationType.budgetWarning)) {
+        debugPrint('⚠️ Creating budget warning notification');
         try {
           await _notificationService!.createBudgetWarning(
             category: category,
@@ -191,17 +307,29 @@ class NotificationProvider with ChangeNotifier {
             threshold: threshold,
             budgetId: budgetId,
           );
-          debugPrint('✅ Budget warning notification created successfully');
+          _pendingNotificationKeys.add(notificationKey);
+          debugPrint('✅ Budget warning notification created');
         } catch (e) {
           debugPrint('❌ Error creating notification: $e');
         }
-      } else {
-        debugPrint(
-            '⏭️ Budget warning notification already exists for this budget');
       }
-    } else {
-      debugPrint(
-          '✅ Budget is within safe limits (${percentage.toStringAsFixed(1)}%)');
     }
   }
+
+  /// Check if notification already exists
+  bool _notificationExists(String budgetId, NotificationType type) {
+    return _notifications.any((n) => n.type == type && n.relatedId == budgetId);
+  }
+
+  // ============ SESSION MANAGEMENT ============
+
+  /// Reset session checks (for testing or debugging)
+  void resetSessionChecks() {
+    _hasCheckedNotificationsThisSession = false;
+    _pendingNotificationKeys.clear();
+    debugPrint('🔄 Session checks reset');
+  }
+
+  /// Get notification check status
+  bool get hasCheckedThisSession => _hasCheckedNotificationsThisSession;
 }

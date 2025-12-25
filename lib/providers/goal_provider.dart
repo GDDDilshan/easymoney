@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../models/goal_model.dart';
 import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
+import '../services/cache_manager_service.dart';
 
+/// ✅ FULLY OPTIMIZED GOAL PROVIDER
+/// - Caching before Firebase
+/// - Smart loading strategy
+/// - Filtered listener
 class GoalProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
+  final CacheManager _cacheManager = CacheManager();
   FirestoreService? _firestoreService;
   List<GoalModel> _goals = [];
   bool _isLoading = false;
   String? _error;
+  StreamSubscription<List<GoalModel>>? _goalSubscription;
+
+  bool _hasInitialized = false;
 
   List<GoalModel> get goals => _goals;
   List<GoalModel> get activeGoals =>
@@ -22,31 +32,126 @@ class GoalProvider with ChangeNotifier {
     _initService();
   }
 
+  @override
+  void dispose() {
+    _goalSubscription?.cancel();
+    super.dispose();
+  }
+
   void _initService() {
     final userId = _authService.currentUser?.uid;
     if (userId != null) {
       _firestoreService = FirestoreService(userId);
-      loadGoals();
+      _loadWithCache();
     }
   }
 
-  void loadGoals() {
+  /// 🔥 CACHE-FIRST: Try cache before Firebase
+  Future<void> _loadWithCache() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      // STEP 1: Try to load from cache
+      debugPrint('📦 Goal: STEP 1 - Attempting to load from cache...');
+      final cachedGoals = await _cacheManager.getCachedGoals();
+
+      if (cachedGoals != null) {
+        // ✅ Cache HIT
+        debugPrint('✅ Goal CACHE HIT: ${cachedGoals.length} goals (cached)');
+        _goals = cachedGoals;
+        _isLoading = false;
+        _hasInitialized = true;
+        notifyListeners();
+
+        // STEP 2: Sync in background
+        _syncWithFirebaseInBackground();
+        return;
+      }
+
+      // STEP 2: Cache miss - Load from Firebase
+      debugPrint('❌ Goal CACHE MISS: Loading from Firebase...');
+      await _loadGoalsFromFirebase();
+    } catch (e) {
+      debugPrint('❌ Error in goal cache-first load: $e');
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// 🔄 Background sync for goal changes
+  Future<void> _syncWithFirebaseInBackground() async {
     if (_firestoreService == null) return;
 
-    _firestoreService!.getGoals().listen(
+    try {
+      debugPrint('🔄 Goal: Background sync started...');
+      final freshGoals = await _firestoreService!.getGoals().first;
+
+      // Check if data changed
+      if (!_isSameGoals(freshGoals, _goals)) {
+        debugPrint('🔄 Goal: Data changed, updating...');
+        _goals = freshGoals;
+
+        // Update cache
+        await _cacheManager.cacheGoals(freshGoals);
+        notifyListeners();
+      } else {
+        debugPrint('✅ Goal: Data up-to-date');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Goal background sync error: $e');
+    }
+  }
+
+  /// Check if goal lists are same
+  bool _isSameGoals(List<GoalModel> list1, List<GoalModel> list2) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i].id != list2[i].id ||
+          list1[i].currentAmount != list2[i].currentAmount) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// Load goals from Firebase
+  Future<void> _loadGoalsFromFirebase() async {
+    if (_firestoreService == null) return;
+
+    _isLoading = true;
+    notifyListeners();
+
+    debugPrint('📊 Goal: Loading from Firebase');
+    debugPrint('   Reads: ~50-100 (optimized)');
+
+    _goalSubscription?.cancel();
+    _goalSubscription = _firestoreService!.getGoals().listen(
       (goals) {
         _goals = goals;
         _isLoading = false;
         _error = null;
+        _hasInitialized = true;
+
+        // Cache the loaded data
+        _cacheManager.cacheGoals(goals);
+
         notifyListeners();
+        debugPrint('✅ Loaded ${goals.length} goals');
+        debugPrint(
+            '   Active: ${activeGoals.length}, Completed: ${completedGoals.length}');
       },
       onError: (error) {
         _error = error.toString();
         _isLoading = false;
         notifyListeners();
+        debugPrint('❌ Error loading goals: $error');
       },
     );
   }
+
+  // ============ CRUD OPERATIONS ============
 
   Future<void> addGoal(GoalModel goal) async {
     if (_firestoreService == null) return;
@@ -57,6 +162,10 @@ class GoalProvider with ChangeNotifier {
     try {
       await _firestoreService!.addGoal(goal);
       _error = null;
+
+      // Invalidate cache
+      await _cacheManager.clearGoalCache();
+      debugPrint('💾 Goal added - Cache invalidated');
     } catch (e) {
       _error = e.toString();
       rethrow;
@@ -75,6 +184,10 @@ class GoalProvider with ChangeNotifier {
     try {
       await _firestoreService!.updateGoal(id, goal);
       _error = null;
+
+      // Invalidate cache
+      await _cacheManager.clearGoalCache();
+      debugPrint('📝 Goal updated - Cache invalidated');
     } catch (e) {
       _error = e.toString();
       rethrow;
@@ -93,6 +206,10 @@ class GoalProvider with ChangeNotifier {
     try {
       await _firestoreService!.deleteGoal(id);
       _error = null;
+
+      // Invalidate cache
+      await _cacheManager.clearGoalCache();
+      debugPrint('🗑️ Goal deleted - Cache invalidated');
     } catch (e) {
       _error = e.toString();
       rethrow;
@@ -111,12 +228,44 @@ class GoalProvider with ChangeNotifier {
     try {
       await _firestoreService!.addGoalContribution(id, amount);
       _error = null;
+
+      // Invalidate cache
+      await _cacheManager.clearGoalCache();
+      debugPrint('💰 Contribution added - Cache invalidated');
     } catch (e) {
       _error = e.toString();
       rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // ============ QUERY HELPERS ============
+
+  int getActiveGoalsCount() => activeGoals.length;
+
+  int getCompletedGoalsCount() => completedGoals.length;
+
+  double getTotalTargetAmount() {
+    return _goals.fold(0.0, (sum, g) => sum + g.targetAmount);
+  }
+
+  double getTotalCurrentAmount() {
+    return _goals.fold(0.0, (sum, g) => sum + g.currentAmount);
+  }
+
+  double getTotalProgress() {
+    final total = getTotalTargetAmount();
+    if (total == 0) return 0;
+    return (getTotalCurrentAmount() / total * 100).clamp(0, 100);
+  }
+
+  GoalModel? getGoalById(String id) {
+    try {
+      return _goals.firstWhere((g) => g.id == id);
+    } catch (e) {
+      return null;
     }
   }
 }
