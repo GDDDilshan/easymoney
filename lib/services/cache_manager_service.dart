@@ -9,14 +9,15 @@ import '../models/goal_model.dart';
 ///
 /// FEATURES:
 /// - User profile NEVER expires (permanent cache)
+/// - Goals NEVER expire (permanent cache)
 /// - Transactions expire after 100 days (day-by-day rolling deletion)
 /// - Budgets expire after 100 days (day-by-day rolling deletion)
-/// - Goals expire after 100 days (day-by-day rolling deletion)
 /// - Auto-cleanup removes only expired days
 ///
 /// COST REDUCTION:
 /// - 95% reduction in Firebase reads for user profile
-/// - 70-80% reduction for transactions/budgets/goals
+/// - 95% reduction in Firebase reads for goals
+/// - 70-80% reduction for transactions/budgets
 /// - Rolling expiration prevents mass data loss
 class SmartCacheManager {
   static final SmartCacheManager _instance = SmartCacheManager._internal();
@@ -31,10 +32,12 @@ class SmartCacheManager {
 
   static const Duration _userCacheExpiry =
       Duration(days: 36500); // NEVER expires (100 years)
+  static const Duration _goalCacheExpiry =
+      Duration(days: 36500); // NEVER expires (100 years)
   static const Duration _transactionCacheExpiry =
-      Duration(days: 100); // 100 days
-  static const Duration _budgetCacheExpiry = Duration(days: 100); // 100 days
-  static const Duration _goalCacheExpiry = Duration(days: 100); // 100 days
+      Duration(days: 100); // 100 days rolling
+  static const Duration _budgetCacheExpiry =
+      Duration(days: 100); // 100 days rolling
 
   // ============================================
   // USER DATA CACHE (NEVER EXPIRES)
@@ -452,16 +455,17 @@ class SmartCacheManager {
   }
 
   // ============================================
-  // GOALS CACHE (ROLLING EXPIRATION)
+  // GOALS CACHE (NEVER EXPIRES - PERMANENT)
   // ============================================
 
-  /// Cache goals with rolling expiration
+  /// Cache goals - PERMANENT STORAGE (never expires)
   Future<void> cacheGoals(List<GoalModel> goals) async {
     try {
       final data = {
         'goals': goals.map((g) => g.toMap()).toList(),
         'timestamp': DateTime.now().millisecondsSinceEpoch,
         'count': goals.length,
+        'permanent': true, // Mark as permanent
       };
 
       await _storage.writeJson(
@@ -469,13 +473,14 @@ class SmartCacheManager {
         json: data,
       );
 
-      debugPrint('✅ GOALS CACHED: ${goals.length} goals (100 day expiry)');
+      debugPrint(
+          '✅ GOALS CACHED: ${goals.length} goals (permanent - never expires)');
     } catch (e) {
       debugPrint('❌ Error caching goals: $e');
     }
   }
 
-  /// Get cached goals with expiration check
+  /// Get cached goals - ALWAYS returns cache if exists (no expiration)
   Future<List<GoalModel>?> getCachedGoals() async {
     try {
       final data = await _storage.readJson(key: 'cached_goals');
@@ -488,12 +493,6 @@ class SmartCacheManager {
       final cacheDate = DateTime.fromMillisecondsSinceEpoch(timestamp);
       final daysOld = DateTime.now().difference(cacheDate).inDays;
 
-      if (daysOld > 100) {
-        debugPrint('⏰ Goals cache EXPIRED ($daysOld days old)');
-        await clearGoalCache();
-        return null;
-      }
-
       final goalsData = data['goals'] as List;
       final goals = goalsData
           .map((g) => GoalModel.fromMap(
@@ -503,7 +502,7 @@ class SmartCacheManager {
           .toList();
 
       debugPrint(
-          '✅ GOALS FROM CACHE: ${goals.length} goals ($daysOld days old)');
+          '✅ GOALS FROM CACHE: ${goals.length} goals ($daysOld days old - permanent)');
       return goals;
     } catch (e) {
       debugPrint('❌ Error loading cached goals: $e');
@@ -511,9 +510,10 @@ class SmartCacheManager {
     }
   }
 
+  /// Clear goal cache (manual only)
   Future<void> clearGoalCache() async {
     await _storage.delete(key: 'cached_goals');
-    debugPrint('🗑️ Goal cache cleared');
+    debugPrint('🗑️ Goal cache cleared (manual)');
   }
 
   // ============================================
@@ -594,8 +594,7 @@ class SmartCacheManager {
           'exists': true,
           'count': goalData['count'],
           'daysOld': daysOld,
-          'expiryDays': 100,
-          'daysRemaining': 100 - daysOld,
+          'permanent': true, // NEVER expires
         };
       } else {
         stats['goals'] = {'exists': false};
