@@ -11,7 +11,7 @@ import '../services/cache_manager_service.dart';
 /// - Filtered listener
 class GoalProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
-  final CacheManager _cacheManager = CacheManager();
+  final SmartCacheManager _cacheManager = SmartCacheManager();
   FirestoreService? _firestoreService;
   List<GoalModel> _goals = [];
   bool _isLoading = false;

@@ -11,7 +11,7 @@ import '../services/cache_manager_service.dart';
 /// - Reduced listener scope
 class BudgetProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
-  final CacheManager _cacheManager = CacheManager();
+  final SmartCacheManager _cacheManager = SmartCacheManager();
   FirestoreService? _firestoreService;
   List<BudgetModel> _budgets = [];
   bool _isLoading = false;

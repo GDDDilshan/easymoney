@@ -11,7 +11,7 @@ import '../services/cache_manager_service.dart';
 /// - Batch updates to reduce reads
 class TransactionProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
-  final CacheManager _cacheManager = CacheManager();
+  final SmartCacheManager _cacheManager = SmartCacheManager();
   FirestoreService? _firestoreService;
   List<TransactionModel> _transactions = [];
   bool _isLoading = false;
