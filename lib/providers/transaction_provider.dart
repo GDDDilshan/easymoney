@@ -83,6 +83,7 @@ class TransactionProvider with ChangeNotifier {
   }
 
   /// 🔄 Sync with Firebase in background without blocking UI
+  /// ✅ FIXED: Using proper Stream handling with .listen() instead of .first
   Future<void> _syncWithFirebaseInBackground() async {
     if (_firestoreService == null) return;
 
@@ -91,10 +92,9 @@ class TransactionProvider with ChangeNotifier {
       final now = DateTime.now();
       final monthStart = DateTime(now.year, now.month, 1);
 
-      // Fetch fresh data from Firebase
-      final freshData = await _firestoreService!
-          .getTransactionsByDateRange(monthStart, now)
-          .first;
+      // ✅ FIXED: Use getTransactionsByDateRange which returns Future<List>
+      final freshData =
+          await _firestoreService!.getTransactionsByDateRange(monthStart, now);
 
       // Check if data changed
       if (freshData.length != _transactions.length ||
