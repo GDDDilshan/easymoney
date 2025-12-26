@@ -3,17 +3,20 @@ import 'dart:async';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 import '../services/auth_service.dart';
+import '../services/cache_manager_service.dart';
 
 /// ✅ FULLY OPTIMIZED NOTIFICATION PROVIDER
-/// - Batch notification creation (prevents duplicates)
-/// - Deduplicated by budgetId + type
-/// - Only check ONCE per app session
-/// - Smart notification cleanup
+/// - Smart caching for offline support
+/// - Instant UI updates (no Firebase reads)
+/// - Only modified records updated
+/// - Background sync for fresh data
 class NotificationProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
+  final SmartCacheManager _cacheManager = SmartCacheManager();
   NotificationService? _notificationService;
   List<NotificationModel> _notifications = [];
   bool _isLoading = false;
+  StreamSubscription<List<NotificationModel>>? _notificationSubscription;
 
   // 🔥 CRITICAL: Only check notifications ONCE per session
   static bool _hasCheckedNotificationsThisSession = false;
@@ -33,6 +36,7 @@ class NotificationProvider with ChangeNotifier {
   @override
   void dispose() {
     _pendingNotificationKeys.clear();
+    _notificationSubscription?.cancel();
     super.dispose();
   }
 
@@ -42,23 +46,95 @@ class NotificationProvider with ChangeNotifier {
 
     if (userId != null) {
       _notificationService = NotificationService(userId);
-      loadNotifications();
+      _loadWithCache(); // ✅ NEW: Load from cache first
       debugPrint('✅ NotificationService initialized');
     } else {
       debugPrint('❌ No user logged in, NotificationService not initialized');
     }
   }
 
-  /// Load notifications from Firestore (stream listener)
-  void loadNotifications() {
+  /// 🔥 NEW: Cache-first loading
+  Future<void> _loadWithCache() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      debugPrint('📦 Notification: Attempting to load from cache...');
+      final cachedNotifications = await _cacheManager.getCachedNotifications();
+
+      if (cachedNotifications != null) {
+        debugPrint(
+            '✅ Notification CACHE HIT: ${cachedNotifications.length} notifications');
+        _notifications = cachedNotifications;
+        _isLoading = false;
+        notifyListeners();
+
+        // Sync in background
+        _syncWithFirebaseInBackground();
+        return;
+      }
+
+      debugPrint('❌ Notification CACHE MISS: Loading from Firebase...');
+      await _loadNotificationsFromFirebase();
+    } catch (e) {
+      debugPrint('❌ Error in notification cache-first load: $e');
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// 🔄 Background sync
+  Future<void> _syncWithFirebaseInBackground() async {
     if (_notificationService == null) return;
 
-    _notificationService!.getNotifications().listen(
+    try {
+      debugPrint('🔄 Notification: Background sync started...');
+      final freshNotifications =
+          await _notificationService!.getNotifications().first;
+
+      if (!_isSameNotifications(freshNotifications, _notifications)) {
+        debugPrint('🔄 Notification: Data changed, updating...');
+        _notifications = freshNotifications;
+        await _cacheManager.cacheNotifications(freshNotifications);
+        notifyListeners();
+      } else {
+        debugPrint('✅ Notification: Data up-to-date');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Notification background sync error: $e');
+    }
+  }
+
+  /// Check if notification lists are same
+  bool _isSameNotifications(
+      List<NotificationModel> list1, List<NotificationModel> list2) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i].id != list2[i].id) return false;
+    }
+    return true;
+  }
+
+  /// Load notifications from Firestore (stream listener)
+  Future<void> _loadNotificationsFromFirebase() async {
+    if (_notificationService == null) return;
+
+    _isLoading = true;
+    notifyListeners();
+
+    debugPrint('📊 Notification: Loading from Firebase');
+
+    _notificationSubscription?.cancel();
+    _notificationSubscription = _notificationService!.getNotifications().listen(
       (notifications) {
         _notifications = notifications;
         _isLoading = false;
+
+        // Cache the loaded data
+        _cacheManager.cacheNotifications(notifications);
+
         notifyListeners();
-        debugPrint('📬 Loaded ${_notifications.length} notifications');
+        debugPrint('✅ Loaded ${_notifications.length} notifications');
       },
       onError: (error) {
         debugPrint('❌ Error loading notifications: $error');
@@ -68,12 +144,25 @@ class NotificationProvider with ChangeNotifier {
     );
   }
 
-  // ============ NOTIFICATION MANAGEMENT ============
+  // ============================================
+  // 🔥 OPTIMIZED NOTIFICATION MANAGEMENT
+  // ============================================
 
   Future<void> markAsRead(String notificationId) async {
     if (_notificationService == null) return;
+
     try {
+      // Update Firebase
       await _notificationService!.markAsRead(notificationId);
+
+      // ✅ OPTIMIZED: Update in cache
+      final index = _notifications.indexWhere((n) => n.id == notificationId);
+      if (index != -1) {
+        final updatedNotification =
+            _notifications[index].copyWith(isRead: true);
+        await _cacheManager.updateNotificationInCache(updatedNotification);
+        debugPrint('✅ Notification marked as read in cache (no Firebase read)');
+      }
     } catch (e) {
       debugPrint('❌ Error marking notification as read: $e');
     }
@@ -81,8 +170,19 @@ class NotificationProvider with ChangeNotifier {
 
   Future<void> markAllAsRead() async {
     if (_notificationService == null) return;
+
     try {
+      // Update Firebase
       await _notificationService!.markAllAsRead();
+
+      // ✅ OPTIMIZED: Update all in cache
+      for (var notification in _notifications) {
+        if (!notification.isRead) {
+          final updatedNotification = notification.copyWith(isRead: true);
+          await _cacheManager.updateNotificationInCache(updatedNotification);
+        }
+      }
+      debugPrint('✅ All notifications marked as read in cache');
     } catch (e) {
       debugPrint('❌ Error marking all as read: $e');
     }
@@ -97,9 +197,20 @@ class NotificationProvider with ChangeNotifier {
     debugPrint('🗑️ Provider: Deleting notification $notificationId');
 
     try {
+      // ✅ OPTIMIZED: Get notification before deleting
+      final notificationToDelete =
+          _notifications.firstWhere((n) => n.id == notificationId);
+
+      // Delete from Firebase
       await _notificationService!.deleteNotification(notificationId);
       debugPrint('✅ Provider: Notification deleted from Firestore');
 
+      // ✅ OPTIMIZED: Remove from cache instead of clearing
+      await _cacheManager.deleteNotificationFromCache(notificationToDelete);
+      debugPrint(
+          '✅ Provider: Notification removed from cache (no Firebase read)');
+
+      // Update local list
       _notifications.removeWhere((n) => n.id == notificationId);
       notifyListeners();
       debugPrint(
@@ -122,9 +233,14 @@ class NotificationProvider with ChangeNotifier {
 
       debugPrint('   Notification IDs to delete: $notificationIds');
 
+      // Delete from Firebase
       for (var notificationId in notificationIds) {
         await _notificationService!.deleteNotification(notificationId);
       }
+
+      // ✅ OPTIMIZED: Clear notifications from cache
+      await _cacheManager.clearNotificationCache();
+      debugPrint('✅ Provider: All notifications cleared from cache');
 
       _notifications.clear();
       notifyListeners();
@@ -135,16 +251,14 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
-  // ============ BATCH NOTIFICATION CHECKING ============
-  // 🔥 CRITICAL: Only run ONCE per app session
+  // ============================================
+  // BATCH NOTIFICATION CHECKING (Unchanged)
+  // ============================================
 
-  /// Check ALL budgets at once (batch operation)
-  /// Only called ONCE when app launches
   Future<void> checkBudgetsAndCreateNotifications({
     required Map<String, dynamic> budgetData,
     required Map<String, dynamic> spendingData,
   }) async {
-    // 🔥 ONLY CHECK ONCE PER SESSION
     if (_hasCheckedNotificationsThisSession) {
       debugPrint('⏭️ Notifications already checked this session, skipping...');
       return;
@@ -164,12 +278,10 @@ class NotificationProvider with ChangeNotifier {
 
     final now = DateTime.now();
 
-    // Batch check all budgets
     for (final entry in budgetData.entries) {
       final budgetId = entry.key;
       final budget = entry.value;
 
-      // Only check current month budgets
       if (budget['month'] != now.month || budget['year'] != now.year) {
         continue;
       }
@@ -180,10 +292,8 @@ class NotificationProvider with ChangeNotifier {
       final threshold = budget['threshold'] ?? 80;
       final category = budget['category'];
 
-      // Create deduplication key
       final notificationKey = '$budgetId:${budget['month']}:${budget['year']}';
 
-      // Check if already processed
       if (_pendingNotificationKeys.contains(notificationKey)) {
         debugPrint('   ⏭️ Already processed: $category');
         continue;
@@ -192,7 +302,6 @@ class NotificationProvider with ChangeNotifier {
       final percentage = (spent / limit * 100);
 
       if (spent > limit) {
-        // Budget exceeded
         if (!_notificationExists(budgetId, NotificationType.budgetExceeded)) {
           debugPrint('   🚨 CREATE: Budget Exceeded - $category');
           try {
@@ -209,7 +318,6 @@ class NotificationProvider with ChangeNotifier {
           }
         }
       } else if (percentage >= threshold) {
-        // Budget warning
         if (!_notificationExists(budgetId, NotificationType.budgetWarning)) {
           debugPrint(
               '   ⚠️ CREATE: Budget Warning - $category (${percentage.toStringAsFixed(0)}%)');
@@ -230,7 +338,6 @@ class NotificationProvider with ChangeNotifier {
       }
     }
 
-    // Mark as checked for this session
     _hasCheckedNotificationsThisSession = true;
 
     debugPrint('✅ BATCH CHECK COMPLETE:');
@@ -240,7 +347,6 @@ class NotificationProvider with ChangeNotifier {
     debugPrint('   🔒 Will NOT check again this session');
   }
 
-  /// Check single budget (used after transaction added)
   Future<void> checkAndCreateNotifications({
     required double spent,
     required double limit,
@@ -257,16 +363,13 @@ class NotificationProvider with ChangeNotifier {
 
     final now = DateTime.now();
 
-    // Only check current month budgets
     if (budgetMonth != now.month || budgetYear != now.year) {
       debugPrint('⏭️ Skipping notification - Budget is NOT for current month');
       return;
     }
 
-    // Create deduplication key
     final notificationKey = '$budgetId:$budgetMonth:$budgetYear';
 
-    // Skip if already processed in this session
     if (_pendingNotificationKeys.contains(notificationKey)) {
       debugPrint('⏭️ Notification already created this session for $category');
       return;
@@ -279,7 +382,6 @@ class NotificationProvider with ChangeNotifier {
         '   Spent: \$${spent.toStringAsFixed(2)} / \$${limit.toStringAsFixed(2)}');
     debugPrint('   Percentage: ${percentage.toStringAsFixed(1)}%');
 
-    // Check if already exceeded
     if (spent > limit) {
       if (!_notificationExists(budgetId, NotificationType.budgetExceeded)) {
         debugPrint('🚨 Creating budget exceeded notification');
@@ -316,20 +418,19 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
-  /// Check if notification already exists
   bool _notificationExists(String budgetId, NotificationType type) {
     return _notifications.any((n) => n.type == type && n.relatedId == budgetId);
   }
 
-  // ============ SESSION MANAGEMENT ============
+  // ============================================
+  // SESSION MANAGEMENT
+  // ============================================
 
-  /// Reset session checks (for testing or debugging)
   void resetSessionChecks() {
     _hasCheckedNotificationsThisSession = false;
     _pendingNotificationKeys.clear();
     debugPrint('🔄 Session checks reset');
   }
 
-  /// Get notification check status
   bool get hasCheckedThisSession => _hasCheckedNotificationsThisSession;
 }
