@@ -5,11 +5,11 @@ import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
 import '../services/cache_manager_service.dart';
 
-/// ✅ ULTIMATE OPTIMIZED TRANSACTION PROVIDER
-/// - All changes (add/edit/delete) go to Firebase immediately
-/// - On-demand loading (only load what user views)
-/// - Smart caching (cache only what's loaded)
-/// - Dashboard optimization (count-only queries)
+/// ✅ ULTIMATE OPTIMIZED TRANSACTION PROVIDER - FIXED VERSION
+/// - All CRUD operations go to Firebase IMMEDIATELY
+/// - Cache loads first if available, then syncs in background
+/// - If no cache, loads from Firebase immediately
+/// - Dashboard uses lightweight stats (no full data)
 class TransactionProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   final SmartCacheManager _cacheManager = SmartCacheManager();
@@ -21,7 +21,7 @@ class TransactionProvider with ChangeNotifier {
   LoadingLevel _currentLoadingLevel = LoadingLevel.none;
   StreamSubscription<List<TransactionModel>>? _transactionSubscription;
 
-  // 🔥 NEW: Dashboard stats (lightweight, no full transaction data)
+  // Dashboard stats (lightweight - only 3 numbers)
   int _currentMonthCount = 0;
   double _currentMonthIncome = 0;
   double _currentMonthExpense = 0;
@@ -36,7 +36,7 @@ class TransactionProvider with ChangeNotifier {
       _currentLoadingLevel.index >= LoadingLevel.month.index;
   bool get isAllLoaded => _currentLoadingLevel == LoadingLevel.all;
 
-  // 🔥 NEW: Dashboard getters (no Firebase reads needed)
+  // Dashboard getters
   int get currentMonthTransactionCount => _currentMonthCount;
   double get currentMonthIncome => _currentMonthIncome;
   double get currentMonthExpense => _currentMonthExpense;
@@ -65,7 +65,6 @@ class TransactionProvider with ChangeNotifier {
   // ============================================
 
   /// Load ONLY count and totals for dashboard (NO transaction data)
-  /// Cost: 1-3 Firebase reads (aggregation query)
   Future<void> _loadDashboardStats() async {
     try {
       debugPrint('📊 Loading dashboard stats (count only, no data)...');
@@ -106,7 +105,7 @@ class TransactionProvider with ChangeNotifier {
 
       notifyListeners();
       debugPrint(
-          '✅ Dashboard stats loaded from Firebase: $_currentMonthCount transactions');
+          '✅ Dashboard stats calculated: $_currentMonthCount transactions, Income: $_currentMonthIncome, Expense: $_currentMonthExpense');
     } catch (e) {
       debugPrint('❌ Error loading dashboard stats: $e');
     }
@@ -142,10 +141,10 @@ class TransactionProvider with ChangeNotifier {
   }
 
   // ============================================
-  // 🔥 ON-DEMAND LOADING (Load only when user views)
+  // 🔥 ON-DEMAND LOADING - FIXED VERSION
   // ============================================
 
-  /// Load ONLY current month transactions (when user navigates to Transactions tab)
+  /// Load current month transactions - FIXED: Always tries Firebase if cache fails
   Future<void> loadCurrentMonth({bool forceRefresh = false}) async {
     if (_firestoreService == null) return;
 
@@ -162,24 +161,29 @@ class TransactionProvider with ChangeNotifier {
       final now = DateTime.now();
       final monthStart = DateTime(now.year, now.month, 1);
 
-      debugPrint('📊 Loading CURRENT MONTH transactions on-demand...');
-      debugPrint('   Expected reads: ~100-200 (only when user views)');
+      debugPrint('📊 Loading CURRENT MONTH transactions...');
 
-      // Try cache first
-      final cachedTransactions = await _cacheManager.getCachedTransactions();
-      if (cachedTransactions != null && !forceRefresh) {
-        _transactions = cachedTransactions;
-        _currentLoadingLevel = LoadingLevel.month;
-        _isLoading = false;
-        notifyListeners();
-        debugPrint('✅ Loaded ${cachedTransactions.length} from cache');
+      // FIXED: Try cache first, but don't stop if cache is empty
+      if (!forceRefresh) {
+        final cachedTransactions = await _cacheManager.getCachedTransactions();
+        if (cachedTransactions != null && cachedTransactions.isNotEmpty) {
+          _transactions = cachedTransactions;
+          _currentLoadingLevel = LoadingLevel.month;
+          _isLoading = false;
+          notifyListeners();
+          debugPrint(
+              '✅ Loaded ${cachedTransactions.length} from cache (will sync in background)');
 
-        // Background sync
-        _syncWithFirebaseInBackground();
-        return;
+          // Background sync
+          _syncWithFirebaseInBackground();
+          return;
+        } else {
+          debugPrint('⚠️ Cache empty or not found, loading from Firebase...');
+        }
       }
 
-      // Load from Firebase
+      // Load from Firebase (this will now run on fresh install)
+      debugPrint('🔥 Loading from Firebase...');
       _transactionSubscription?.cancel();
       _transactionSubscription =
           _firestoreService!.getTransactions(startDate: monthStart).listen(
@@ -255,7 +259,6 @@ class TransactionProvider with ChangeNotifier {
     notifyListeners();
 
     debugPrint('📊 Loading FULL HISTORY (user requested)...');
-    debugPrint('   ⚠️ WARNING: This may cost 200-500+ reads');
 
     _transactionSubscription?.cancel();
     _transactionSubscription = _firestoreService!.getTransactions().listen(
@@ -289,8 +292,9 @@ class TransactionProvider with ChangeNotifier {
     try {
       debugPrint('➕ Adding transaction to Firebase immediately...');
 
-      // ✅ STEP 1: Save to Firebase IMMEDIATELY (no await for UI)
-      final firestoreFuture = _firestoreService!.addTransaction(transaction);
+      // ✅ STEP 1: Save to Firebase FIRST
+      await _firestoreService!.addTransaction(transaction);
+      debugPrint('✅ Transaction saved to Firebase');
 
       // ✅ STEP 2: Update local state for instant UI
       final tempTransaction = transaction.copyWith(
@@ -317,13 +321,9 @@ class TransactionProvider with ChangeNotifier {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
 
-      debugPrint('✅ Transaction added to UI and cache instantly');
+      debugPrint('✅ Transaction added to UI and cache');
 
-      // ✅ STEP 5: Wait for Firebase and sync
-      await firestoreFuture;
-      debugPrint('✅ Transaction saved to Firebase');
-
-      // Background sync to get real ID
+      // ✅ STEP 5: Sync to get real ID from Firebase
       _syncWithFirebaseInBackground();
 
       _error = null;
@@ -347,9 +347,9 @@ class TransactionProvider with ChangeNotifier {
 
       final oldTransaction = _transactions[index];
 
-      // ✅ STEP 1: Update Firebase IMMEDIATELY
-      final firestoreFuture =
-          _firestoreService!.updateTransaction(id, transaction);
+      // ✅ STEP 1: Update Firebase FIRST
+      await _firestoreService!.updateTransaction(id, transaction);
+      debugPrint('✅ Transaction updated in Firebase');
 
       // ✅ STEP 2: Update local state
       final updatedTransaction = transaction.copyWith(id: id);
@@ -379,11 +379,7 @@ class TransactionProvider with ChangeNotifier {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
 
-      debugPrint('✅ Transaction updated in UI and cache instantly');
-
-      // ✅ STEP 5: Wait for Firebase
-      await firestoreFuture;
-      debugPrint('✅ Transaction updated in Firebase');
+      debugPrint('✅ Transaction updated in UI and cache');
 
       _error = null;
     } catch (e) {
@@ -405,8 +401,9 @@ class TransactionProvider with ChangeNotifier {
 
       final transactionToDelete = _transactions[index];
 
-      // ✅ STEP 1: Delete from Firebase IMMEDIATELY
-      final firestoreFuture = _firestoreService!.deleteTransaction(id);
+      // ✅ STEP 1: Delete from Firebase FIRST
+      await _firestoreService!.deleteTransaction(id);
+      debugPrint('✅ Transaction deleted from Firebase');
 
       // ✅ STEP 2: Update local state
       _transactions.removeAt(index);
@@ -430,11 +427,7 @@ class TransactionProvider with ChangeNotifier {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
 
-      debugPrint('✅ Transaction deleted from UI and cache instantly');
-
-      // ✅ STEP 5: Wait for Firebase
-      await firestoreFuture;
-      debugPrint('✅ Transaction deleted from Firebase');
+      debugPrint('✅ Transaction deleted from UI and cache');
 
       _error = null;
     } catch (e) {
@@ -458,7 +451,7 @@ class TransactionProvider with ChangeNotifier {
 
   double getTotalIncome([DateTime? start, DateTime? end]) {
     if (start == null && end == null && _statsLoaded) {
-      return _currentMonthIncome; // Use cached stats
+      return _currentMonthIncome;
     }
 
     var txns = _transactions;
@@ -472,7 +465,7 @@ class TransactionProvider with ChangeNotifier {
 
   double getTotalExpenses([DateTime? start, DateTime? end]) {
     if (start == null && end == null && _statsLoaded) {
-      return _currentMonthExpense; // Use cached stats
+      return _currentMonthExpense;
     }
 
     var txns = _transactions;
@@ -497,7 +490,6 @@ class TransactionProvider with ChangeNotifier {
     return categoryTotals;
   }
 
-  // Dashboard helpers (use cached stats when possible)
   List<TransactionModel> getTodayTransactions() {
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);

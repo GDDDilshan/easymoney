@@ -142,13 +142,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-class DashboardHome extends StatelessWidget {
+class DashboardHome extends StatefulWidget {
   final VoidCallback? onNavigateToBudget;
 
   const DashboardHome({super.key, this.onNavigateToBudget});
 
   @override
+  State<DashboardHome> createState() => _DashboardHomeState();
+}
+
+class _DashboardHomeState extends State<DashboardHome> {
+  bool _hasLoadedTransactions = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Don't load transactions on init - only load on demand when needed
+    debugPrint('📱 Dashboard: Initialized (NOT loading transactions yet)');
+  }
+
+  // Load transactions only when needed (lazy loading)
+  void _ensureTransactionsLoaded() {
+    if (!_hasLoadedTransactions) {
+      debugPrint('📱 Dashboard: Loading transactions on-demand...');
+      final transactionProvider =
+          Provider.of<TransactionProvider>(context, listen: false);
+      transactionProvider.loadCurrentMonth();
+      _hasLoadedTransactions = true;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Load transactions when building weekly chart or transaction list
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ensureTransactionsLoaded();
+    });
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -237,7 +267,7 @@ class DashboardHome extends StatelessWidget {
                   ],
                 ),
                 NotificationBell(
-                  onNavigateToBudget: onNavigateToBudget,
+                  onNavigateToBudget: widget.onNavigateToBudget,
                 ).animate().fadeIn(delay: 300.ms).scale(delay: 300.ms),
               ],
             ),
@@ -252,19 +282,13 @@ class DashboardHome extends StatelessWidget {
     final authProvider = Provider.of<AuthProvider>(context);
     final currency = authProvider.selectedCurrency;
     final goalProvider = Provider.of<GoalProvider>(context);
-    final now = DateTime.now();
-    final startOfMonth = DateTime(now.year, now.month, 1);
-    final endOfMonth = DateTime(now.year, now.month + 1, 0);
 
-    final monthlyIncome =
-        transactionProvider.getTotalIncome(startOfMonth, endOfMonth);
-    final monthlyExpenses =
-        transactionProvider.getTotalExpenses(startOfMonth, endOfMonth);
+    // Use dashboard stats (lightweight - no full transaction data)
+    final monthlyIncome = transactionProvider.currentMonthIncome;
+    final monthlyExpenses = transactionProvider.currentMonthExpense;
     final balance = monthlyIncome - monthlyExpenses;
-
-    final monthlyTransactions = transactionProvider.transactions
-        .where((t) => t.date.year == now.year && t.date.month == now.month)
-        .length;
+    final monthlyTransactions =
+        transactionProvider.currentMonthTransactionCount;
 
     final activeGoalsCount = goalProvider.activeGoals.length;
 
@@ -324,12 +348,10 @@ class DashboardHome extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
-                        // FIXED: Black background for dark mode, white for light mode
                         color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF0F172A) // Deep black
+                            ? const Color(0xFF0F172A)
                             : Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        // FIXED: Stronger border for better visibility
                         border: Border.all(
                           color: isNegative
                               ? const Color(0xFFEF4444).withValues(alpha: 0.3)
@@ -349,29 +371,26 @@ class DashboardHome extends StatelessWidget {
                           Icon(
                             Iconsax.calendar,
                             size: 14,
-                            // FIXED: Bright colors for dark mode
-                            color: Theme.of(context).brightness ==
-                                    Brightness.dark
-                                ? (isNegative
-                                    ? const Color(0xFFFF6B6B) // Brighter red
-                                    : const Color(0xFF34D399)) // Brighter green
-                                : (isNegative
-                                    ? const Color(0xFFEF4444)
-                                    : AppTheme.primaryGreen),
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? (isNegative
+                                        ? const Color(0xFFFF6B6B)
+                                        : const Color(0xFF34D399))
+                                    : (isNegative
+                                        ? const Color(0xFFEF4444)
+                                        : AppTheme.primaryGreen),
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            Helpers.getMonthName(now.month),
+                            Helpers.getMonthName(DateTime.now().month),
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              // FIXED: Bright colors for dark mode
                               color: Theme.of(context).brightness ==
                                       Brightness.dark
                                   ? (isNegative
-                                      ? const Color(0xFFFF6B6B) // Brighter red
-                                      : const Color(
-                                          0xFF34D399)) // Brighter green
+                                      ? const Color(0xFFFF6B6B)
+                                      : const Color(0xFF34D399))
                                   : (isNegative
                                       ? const Color(0xFFEF4444)
                                       : AppTheme.primaryGreen),
