@@ -4,6 +4,7 @@ import 'secure_storage_service.dart';
 import '../models/transaction_model.dart';
 import '../models/budget_model.dart';
 import '../models/goal_model.dart';
+import '../models/notification_model.dart'; // ✅ ADDED THIS IMPORT
 
 /// 🔒 SMART CACHE MANAGER - OPTIMIZED FOR MINIMAL FIREBASE COST
 /// - Updates only specific affected records
@@ -702,7 +703,7 @@ class SmartCacheManager {
   // ============================================
 
   /// Convert Notification to JSON-safe format
-  Map<String, dynamic> _notificationToJson(dynamic notification) {
+  Map<String, dynamic> _notificationToJson(NotificationModel notification) {
     final map = notification.toMap();
     if (map['createdAt'] != null) {
       map['createdAt'] = (map['createdAt'] as dynamic).millisecondsSinceEpoch;
@@ -711,7 +712,7 @@ class SmartCacheManager {
   }
 
   /// Cache notifications
-  Future<void> cacheNotifications(List<dynamic> notifications) async {
+  Future<void> cacheNotifications(List<NotificationModel> notifications) async {
     try {
       await _storage.writeJson(
         key: 'cached_notifications',
@@ -728,21 +729,23 @@ class SmartCacheManager {
     }
   }
 
-  /// Get cached notifications
-  Future<List<dynamic>?> getCachedNotifications() async {
+  /// Get cached notifications - ✅ FIXED VERSION
+  Future<List<NotificationModel>?> getCachedNotifications() async {
     try {
       final data = await _storage.readJson(key: 'cached_notifications');
       if (data == null) return null;
 
       final notificationsData = data['notifications'] as List;
+
+      // ✅ FIXED: Properly construct NotificationModel objects
       final notifications = notificationsData.map((n) {
         final map = (n as Map<String, dynamic>).cast<String, dynamic>();
         if (map['createdAt'] is int) {
           map['createdAt'] =
               DateTime.fromMillisecondsSinceEpoch(map['createdAt']);
         }
-        // Import NotificationModel in the provider to construct properly
-        return map; // Return raw map, let provider reconstruct
+        // ✅ Return proper NotificationModel objects
+        return NotificationModel.fromMap(map, map['id'] ?? '');
       }).toList();
 
       debugPrint('✅ Loaded ${notifications.length} notifications from cache');
@@ -754,7 +757,7 @@ class SmartCacheManager {
   }
 
   /// Update single notification in cache
-  Future<void> updateNotificationInCache(dynamic notification) async {
+  Future<void> updateNotificationInCache(NotificationModel notification) async {
     try {
       final data = await _storage.readJson(key: 'cached_notifications');
       if (data == null) {
@@ -786,7 +789,8 @@ class SmartCacheManager {
   }
 
   /// Delete single notification from cache
-  Future<void> deleteNotificationFromCache(dynamic notification) async {
+  Future<void> deleteNotificationFromCache(
+      NotificationModel notification) async {
     try {
       final data = await _storage.readJson(key: 'cached_notifications');
       if (data == null) {
