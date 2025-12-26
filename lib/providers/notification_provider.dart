@@ -5,11 +5,10 @@ import '../services/notification_service.dart';
 import '../services/auth_service.dart';
 import '../services/cache_manager_service.dart';
 
-/// ✅ FULLY OPTIMIZED NOTIFICATION PROVIDER
-/// - Smart caching for offline support
-/// - Instant UI updates (no Firebase reads)
-/// - Only modified records updated
-/// - Background sync for fresh data
+/// ✅ FULLY FIXED NOTIFICATION PROVIDER
+/// - Immediate UI updates from cache
+/// - Background Firebase sync
+/// - No unnecessary reads
 class NotificationProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   final SmartCacheManager _cacheManager = SmartCacheManager();
@@ -46,14 +45,14 @@ class NotificationProvider with ChangeNotifier {
 
     if (userId != null) {
       _notificationService = NotificationService(userId);
-      _loadWithCache(); // ✅ NEW: Load from cache first
+      _loadWithCache();
       debugPrint('✅ NotificationService initialized');
     } else {
       debugPrint('❌ No user logged in, NotificationService not initialized');
     }
   }
 
-  /// 🔥 NEW: Cache-first loading
+  /// 🔥 CACHE-FIRST: Try cache before Firebase
   Future<void> _loadWithCache() async {
     _isLoading = true;
     notifyListeners();
@@ -69,7 +68,6 @@ class NotificationProvider with ChangeNotifier {
         _isLoading = false;
         notifyListeners();
 
-        // Sync in background
         _syncWithFirebaseInBackground();
         return;
       }
@@ -130,7 +128,6 @@ class NotificationProvider with ChangeNotifier {
         _notifications = notifications;
         _isLoading = false;
 
-        // Cache the loaded data
         _cacheManager.cacheNotifications(notifications);
 
         notifyListeners();
@@ -145,23 +142,31 @@ class NotificationProvider with ChangeNotifier {
   }
 
   // ============================================
-  // 🔥 OPTIMIZED NOTIFICATION MANAGEMENT
+  // 🔥 FIXED NOTIFICATION MANAGEMENT
   // ============================================
 
   Future<void> markAsRead(String notificationId) async {
     if (_notificationService == null) return;
 
     try {
-      // Update Firebase
-      await _notificationService!.markAsRead(notificationId);
-
-      // ✅ OPTIMIZED: Update in cache
+      // ✅ STEP 1: Update local state IMMEDIATELY
       final index = _notifications.indexWhere((n) => n.id == notificationId);
       if (index != -1) {
         final updatedNotification =
             _notifications[index].copyWith(isRead: true);
+        _notifications[index] = updatedNotification;
+        notifyListeners();
+
+        // ✅ STEP 2: Update cache IMMEDIATELY
         await _cacheManager.updateNotificationInCache(updatedNotification);
-        debugPrint('✅ Notification marked as read in cache (no Firebase read)');
+        debugPrint('✅ Notification marked as read in UI and cache immediately');
+
+        // ✅ STEP 3: Update Firebase in background (no await)
+        _notificationService!.markAsRead(notificationId).then((_) {
+          debugPrint('✅ Mark as read synced to Firebase');
+        }).catchError((error) {
+          debugPrint('❌ Firebase sync error: $error');
+        });
       }
     } catch (e) {
       debugPrint('❌ Error marking notification as read: $e');
@@ -172,17 +177,27 @@ class NotificationProvider with ChangeNotifier {
     if (_notificationService == null) return;
 
     try {
-      // Update Firebase
-      await _notificationService!.markAllAsRead();
-
-      // ✅ OPTIMIZED: Update all in cache
-      for (var notification in _notifications) {
-        if (!notification.isRead) {
-          final updatedNotification = notification.copyWith(isRead: true);
-          await _cacheManager.updateNotificationInCache(updatedNotification);
+      // ✅ STEP 1: Update local state IMMEDIATELY
+      for (int i = 0; i < _notifications.length; i++) {
+        if (!_notifications[i].isRead) {
+          _notifications[i] = _notifications[i].copyWith(isRead: true);
         }
       }
-      debugPrint('✅ All notifications marked as read in cache');
+      notifyListeners();
+
+      // ✅ STEP 2: Update cache IMMEDIATELY
+      for (var notification in _notifications) {
+        await _cacheManager.updateNotificationInCache(notification);
+      }
+      debugPrint(
+          '✅ All notifications marked as read in UI and cache immediately');
+
+      // ✅ STEP 3: Update Firebase in background (no await)
+      _notificationService!.markAllAsRead().then((_) {
+        debugPrint('✅ Mark all as read synced to Firebase');
+      }).catchError((error) {
+        debugPrint('❌ Firebase sync error: $error');
+      });
     } catch (e) {
       debugPrint('❌ Error marking all as read: $e');
     }
@@ -197,24 +212,26 @@ class NotificationProvider with ChangeNotifier {
     debugPrint('🗑️ Provider: Deleting notification $notificationId');
 
     try {
-      // ✅ OPTIMIZED: Get notification before deleting
-      final notificationToDelete =
-          _notifications.firstWhere((n) => n.id == notificationId);
+      // ✅ STEP 1: Find notification
+      final index = _notifications.indexWhere((n) => n.id == notificationId);
+      if (index == -1) return;
 
-      // Delete from Firebase
-      await _notificationService!.deleteNotification(notificationId);
-      debugPrint('✅ Provider: Notification deleted from Firestore');
+      final notificationToDelete = _notifications[index];
 
-      // ✅ OPTIMIZED: Remove from cache instead of clearing
-      await _cacheManager.deleteNotificationFromCache(notificationToDelete);
-      debugPrint(
-          '✅ Provider: Notification removed from cache (no Firebase read)');
-
-      // Update local list
-      _notifications.removeWhere((n) => n.id == notificationId);
+      // ✅ STEP 2: Remove from local state IMMEDIATELY
+      _notifications.removeAt(index);
       notifyListeners();
-      debugPrint(
-          '✅ Provider: Local list updated, ${_notifications.length} remaining');
+
+      // ✅ STEP 3: Remove from cache IMMEDIATELY
+      await _cacheManager.deleteNotificationFromCache(notificationToDelete);
+      debugPrint('✅ Notification deleted from UI and cache immediately');
+
+      // ✅ STEP 4: Delete from Firebase in background (no await)
+      _notificationService!.deleteNotification(notificationId).then((_) {
+        debugPrint('✅ Notification deletion synced to Firebase');
+      }).catchError((error) {
+        debugPrint('❌ Firebase sync error: $error');
+      });
     } catch (e) {
       debugPrint('❌ Provider: Error deleting notification: $e');
       rethrow;
@@ -231,20 +248,20 @@ class NotificationProvider with ChangeNotifier {
       final notificationIds =
           _notifications.where((n) => n.id != null).map((n) => n.id!).toList();
 
-      debugPrint('   Notification IDs to delete: $notificationIds');
-
-      // Delete from Firebase
-      for (var notificationId in notificationIds) {
-        await _notificationService!.deleteNotification(notificationId);
-      }
-
-      // ✅ OPTIMIZED: Clear notifications from cache
-      await _cacheManager.clearNotificationCache();
-      debugPrint('✅ Provider: All notifications cleared from cache');
-
+      // ✅ STEP 1: Clear local state IMMEDIATELY
       _notifications.clear();
       notifyListeners();
-      debugPrint('✅ Provider: All notifications deleted');
+
+      // ✅ STEP 2: Clear cache IMMEDIATELY
+      await _cacheManager.clearNotificationCache();
+      debugPrint('✅ All notifications deleted from UI and cache immediately');
+
+      // ✅ STEP 3: Delete from Firebase in background (no await)
+      for (var notificationId in notificationIds) {
+        _notificationService!.deleteNotification(notificationId);
+      }
+      debugPrint(
+          '✅ Started background deletion of ${notificationIds.length} notifications from Firebase');
     } catch (e) {
       debugPrint('❌ Provider: Error deleting all notifications: $e');
       rethrow;

@@ -5,10 +5,10 @@ import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
 import '../services/cache_manager_service.dart';
 
-/// ✅ FULLY OPTIMIZED BUDGET PROVIDER
-/// - Smart cache updates (no unnecessary clearing)
-/// - 99% reduction in Firebase reads
-/// - Only affected records are modified
+/// ✅ FULLY FIXED BUDGET PROVIDER
+/// - Immediate UI updates from cache
+/// - Background Firebase sync
+/// - No unnecessary reads
 class BudgetProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   final SmartCacheManager _cacheManager = SmartCacheManager();
@@ -155,23 +155,16 @@ class BudgetProvider with ChangeNotifier {
   }
 
   // ============================================
-  // 🔥 OPTIMIZED CRUD OPERATIONS
+  // 🔥 FIXED CRUD OPERATIONS
   // ============================================
 
   Future<void> addBudget(BudgetModel budget) async {
     if (_firestoreService == null) return;
 
-    _isLoading = true;
-    notifyListeners();
-
     try {
-      // Add to Firebase
-      await _firestoreService!.addBudget(budget);
-      _error = null;
-
-      // ✅ OPTIMIZED: Add to cache instead of clearing
+      // ✅ STEP 1: Create optimistic budget with temp ID
       final tempBudget = BudgetModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
         category: budget.category,
         monthlyLimit: budget.monthlyLimit,
         period: budget.period,
@@ -179,78 +172,100 @@ class BudgetProvider with ChangeNotifier {
         month: budget.month,
         year: budget.year,
       );
-      await _cacheManager.addBudgetToCache(tempBudget);
 
-      debugPrint('💾 Budget added to cache (no Firebase read needed)');
-      debugPrint('   Cost savings: ~50-100 Firebase reads avoided! 💰');
+      // ✅ STEP 2: Update local state IMMEDIATELY
+      _budgets.add(tempBudget);
+      notifyListeners();
+
+      // ✅ STEP 3: Update cache IMMEDIATELY
+      await _cacheManager.addBudgetToCache(tempBudget);
+      debugPrint('✅ Budget added to UI and cache immediately');
+
+      // ✅ STEP 4: Save to Firebase in background (no await)
+      _firestoreService!.addBudget(budget).then((_) {
+        debugPrint('✅ Budget synced to Firebase');
+        _syncWithFirebaseInBackground();
+      }).catchError((error) {
+        debugPrint('❌ Firebase sync error: $error');
+      });
+
+      _error = null;
     } catch (e) {
       _error = e.toString();
+      debugPrint('❌ Error adding budget: $e');
       rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
   }
 
   Future<void> updateBudget(String id, BudgetModel budget) async {
     if (_firestoreService == null) return;
 
-    _isLoading = true;
-    notifyListeners();
-
     try {
-      // Update in Firebase
-      await _firestoreService!.updateBudget(id, budget);
+      // ✅ STEP 1: Update local state IMMEDIATELY
+      final index = _budgets.indexWhere((b) => b.id == id);
+      if (index != -1) {
+        final updatedBudget = BudgetModel(
+          id: id,
+          category: budget.category,
+          monthlyLimit: budget.monthlyLimit,
+          period: budget.period,
+          alertThreshold: budget.alertThreshold,
+          month: budget.month,
+          year: budget.year,
+        );
+        _budgets[index] = updatedBudget;
+        notifyListeners();
+
+        // ✅ STEP 2: Update cache IMMEDIATELY
+        await _cacheManager.updateBudgetInCache(updatedBudget);
+        debugPrint('✅ Budget updated in UI and cache immediately');
+
+        // ✅ STEP 3: Save to Firebase in background (no await)
+        _firestoreService!.updateBudget(id, budget).then((_) {
+          debugPrint('✅ Budget update synced to Firebase');
+        }).catchError((error) {
+          debugPrint('❌ Firebase sync error: $error');
+        });
+      }
+
       _error = null;
-
-      // ✅ OPTIMIZED: Update in cache instead of clearing
-      final updatedBudget = BudgetModel(
-        id: id,
-        category: budget.category,
-        monthlyLimit: budget.monthlyLimit,
-        period: budget.period,
-        alertThreshold: budget.alertThreshold,
-        month: budget.month,
-        year: budget.year,
-      );
-      await _cacheManager.updateBudgetInCache(updatedBudget);
-
-      debugPrint('📝 Budget updated in cache (no Firebase read needed)');
-      debugPrint('   Cost savings: ~50-100 Firebase reads avoided! 💰');
     } catch (e) {
       _error = e.toString();
+      debugPrint('❌ Error updating budget: $e');
       rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
   }
 
   Future<void> deleteBudget(String id) async {
     if (_firestoreService == null) return;
 
-    _isLoading = true;
-    notifyListeners();
-
     try {
-      // ✅ OPTIMIZED: Get budget before deleting for cache update
-      final budgetToDelete = _budgets.firstWhere((b) => b.id == id);
+      // ✅ STEP 1: Get budget before deleting
+      final index = _budgets.indexWhere((b) => b.id == id);
+      if (index == -1) return;
 
-      // Delete from Firebase
-      await _firestoreService!.deleteBudget(id);
-      _error = null;
+      final budgetToDelete = _budgets[index];
 
-      // ✅ OPTIMIZED: Remove from cache instead of clearing
+      // ✅ STEP 2: Remove from local state IMMEDIATELY
+      _budgets.removeAt(index);
+      notifyListeners();
+
+      // ✅ STEP 3: Remove from cache IMMEDIATELY
       await _cacheManager.deleteBudgetFromCache(budgetToDelete);
+      debugPrint('✅ Budget deleted from UI and cache immediately');
 
-      debugPrint('🗑️ Budget deleted from cache (no Firebase read needed)');
-      debugPrint('   Cost savings: ~50-100 Firebase reads avoided! 💰');
+      // ✅ STEP 4: Delete from Firebase in background (no await)
+      _firestoreService!.deleteBudget(id).then((_) {
+        debugPrint('✅ Budget deletion synced to Firebase');
+      }).catchError((error) {
+        debugPrint('❌ Firebase sync error: $error');
+      });
+
+      _error = null;
     } catch (e) {
       _error = e.toString();
+      debugPrint('❌ Error deleting budget: $e');
       rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
   }
 

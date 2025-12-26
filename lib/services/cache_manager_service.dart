@@ -695,6 +695,7 @@ class SmartCacheManager {
     await clearBudgetCache();
     await clearGoalCache();
     await clearNotificationCache();
+    await clearDashboardStatsCache(); // ← ADD THIS LINE
     debugPrint('🗑️ ALL CACHES CLEARED');
   }
 
@@ -834,5 +835,51 @@ class SmartCacheManager {
 
   String _getMonthKey(int month, int year) {
     return '$year-${month.toString().padLeft(2, '0')}';
+  }
+
+  /// 🔥 NEW: Cache dashboard stats (lightweight - only 3 numbers)
+  Future<void> cacheDashboardStats(Map<String, dynamic> stats) async {
+    try {
+      await _storage.writeJson(
+        key: 'cached_dashboard_stats',
+        json: stats,
+      );
+      debugPrint('✅ Dashboard stats cached');
+    } catch (e) {
+      debugPrint('❌ Error caching dashboard stats: $e');
+    }
+  }
+
+  /// 🔥 NEW: Get cached dashboard stats
+  Future<Map<String, dynamic>?> getCachedDashboardStats() async {
+    try {
+      final data = await _storage.readJson(key: 'cached_dashboard_stats');
+      if (data == null) return null;
+
+      // Check if cache is fresh (less than 5 minutes old)
+      final timestamp = data['timestamp'] as int?;
+      if (timestamp != null) {
+        final cacheAge = DateTime.now().millisecondsSinceEpoch - timestamp;
+        final fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+        if (cacheAge > fiveMinutes) {
+          debugPrint(
+              '⚠️ Dashboard stats cache expired (${cacheAge ~/ 1000}s old)');
+          return null; // Cache too old
+        }
+      }
+
+      debugPrint('✅ Dashboard stats loaded from cache');
+      return data;
+    } catch (e) {
+      debugPrint('❌ Error loading cached dashboard stats: $e');
+      return null;
+    }
+  }
+
+  /// 🔥 NEW: Clear dashboard stats cache
+  Future<void> clearDashboardStatsCache() async {
+    await _storage.delete(key: 'cached_dashboard_stats');
+    debugPrint('🗑️ Dashboard stats cache cleared');
   }
 }

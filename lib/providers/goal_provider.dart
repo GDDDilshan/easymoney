@@ -5,10 +5,10 @@ import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
 import '../services/cache_manager_service.dart';
 
-/// ✅ FULLY OPTIMIZED GOAL PROVIDER
-/// - Smart cache updates (no unnecessary clearing)
-/// - 99% reduction in Firebase reads
-/// - Only affected records are modified
+/// ✅ FULLY FIXED GOAL PROVIDER
+/// - Immediate UI updates from cache
+/// - Background Firebase sync
+/// - No unnecessary reads
 class GoalProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   final SmartCacheManager _cacheManager = SmartCacheManager();
@@ -144,131 +144,149 @@ class GoalProvider with ChangeNotifier {
   }
 
   // ============================================
-  // 🔥 OPTIMIZED CRUD OPERATIONS
+  // 🔥 FIXED CRUD OPERATIONS
   // ============================================
 
   Future<void> addGoal(GoalModel goal) async {
     if (_firestoreService == null) return;
 
-    _isLoading = true;
-    notifyListeners();
-
     try {
-      // Add to Firebase
-      await _firestoreService!.addGoal(goal);
-      _error = null;
-
-      // ✅ OPTIMIZED: Add to cache instead of clearing
+      // ✅ STEP 1: Create optimistic goal with temp ID
       final tempGoal = GoalModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
         name: goal.name,
         targetAmount: goal.targetAmount,
         currentAmount: goal.currentAmount,
         targetDate: goal.targetDate,
         color: goal.color,
       );
-      await _cacheManager.addGoalToCache(tempGoal);
 
-      debugPrint('💾 Goal added to cache (no Firebase read needed)');
-      debugPrint('   Cost savings: ~50-100 Firebase reads avoided! 💰');
+      // ✅ STEP 2: Update local state IMMEDIATELY
+      _goals.add(tempGoal);
+      notifyListeners();
+
+      // ✅ STEP 3: Update cache IMMEDIATELY
+      await _cacheManager.addGoalToCache(tempGoal);
+      debugPrint('✅ Goal added to UI and cache immediately');
+
+      // ✅ STEP 4: Save to Firebase in background (no await)
+      _firestoreService!.addGoal(goal).then((_) {
+        debugPrint('✅ Goal synced to Firebase');
+        _syncWithFirebaseInBackground();
+      }).catchError((error) {
+        debugPrint('❌ Firebase sync error: $error');
+      });
+
+      _error = null;
     } catch (e) {
       _error = e.toString();
+      debugPrint('❌ Error adding goal: $e');
       rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
   }
 
   Future<void> updateGoal(String id, GoalModel goal) async {
     if (_firestoreService == null) return;
 
-    _isLoading = true;
-    notifyListeners();
-
     try {
-      // Update in Firebase
-      await _firestoreService!.updateGoal(id, goal);
+      // ✅ STEP 1: Update local state IMMEDIATELY
+      final index = _goals.indexWhere((g) => g.id == id);
+      if (index != -1) {
+        final updatedGoal = GoalModel(
+          id: id,
+          name: goal.name,
+          targetAmount: goal.targetAmount,
+          currentAmount: goal.currentAmount,
+          targetDate: goal.targetDate,
+          color: goal.color,
+        );
+        _goals[index] = updatedGoal;
+        notifyListeners();
+
+        // ✅ STEP 2: Update cache IMMEDIATELY
+        await _cacheManager.updateGoalInCache(updatedGoal);
+        debugPrint('✅ Goal updated in UI and cache immediately');
+
+        // ✅ STEP 3: Save to Firebase in background (no await)
+        _firestoreService!.updateGoal(id, goal).then((_) {
+          debugPrint('✅ Goal update synced to Firebase');
+        }).catchError((error) {
+          debugPrint('❌ Firebase sync error: $error');
+        });
+      }
+
       _error = null;
-
-      // ✅ OPTIMIZED: Update in cache instead of clearing
-      final updatedGoal = GoalModel(
-        id: id,
-        name: goal.name,
-        targetAmount: goal.targetAmount,
-        currentAmount: goal.currentAmount,
-        targetDate: goal.targetDate,
-        color: goal.color,
-      );
-      await _cacheManager.updateGoalInCache(updatedGoal);
-
-      debugPrint('📝 Goal updated in cache (no Firebase read needed)');
-      debugPrint('   Cost savings: ~50-100 Firebase reads avoided! 💰');
     } catch (e) {
       _error = e.toString();
+      debugPrint('❌ Error updating goal: $e');
       rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
   }
 
   Future<void> deleteGoal(String id) async {
     if (_firestoreService == null) return;
 
-    _isLoading = true;
-    notifyListeners();
-
     try {
-      // ✅ OPTIMIZED: Get goal before deleting for cache update
-      final goalToDelete = _goals.firstWhere((g) => g.id == id);
+      // ✅ STEP 1: Get goal before deleting
+      final index = _goals.indexWhere((g) => g.id == id);
+      if (index == -1) return;
 
-      // Delete from Firebase
-      await _firestoreService!.deleteGoal(id);
-      _error = null;
+      final goalToDelete = _goals[index];
 
-      // ✅ OPTIMIZED: Remove from cache instead of clearing
+      // ✅ STEP 2: Remove from local state IMMEDIATELY
+      _goals.removeAt(index);
+      notifyListeners();
+
+      // ✅ STEP 3: Remove from cache IMMEDIATELY
       await _cacheManager.deleteGoalFromCache(goalToDelete);
+      debugPrint('✅ Goal deleted from UI and cache immediately');
 
-      debugPrint('🗑️ Goal deleted from cache (no Firebase read needed)');
-      debugPrint('   Cost savings: ~50-100 Firebase reads avoided! 💰');
+      // ✅ STEP 4: Delete from Firebase in background (no await)
+      _firestoreService!.deleteGoal(id).then((_) {
+        debugPrint('✅ Goal deletion synced to Firebase');
+      }).catchError((error) {
+        debugPrint('❌ Firebase sync error: $error');
+      });
+
+      _error = null;
     } catch (e) {
       _error = e.toString();
+      debugPrint('❌ Error deleting goal: $e');
       rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
   }
 
   Future<void> addContribution(String id, double amount) async {
     if (_firestoreService == null) return;
 
-    _isLoading = true;
-    notifyListeners();
-
     try {
-      // Get current goal
-      final currentGoal = _goals.firstWhere((g) => g.id == id);
+      // ✅ STEP 1: Update local state IMMEDIATELY
+      final index = _goals.indexWhere((g) => g.id == id);
+      if (index != -1) {
+        final currentGoal = _goals[index];
+        final updatedGoal = currentGoal.copyWith(
+          currentAmount: currentGoal.currentAmount + amount,
+        );
+        _goals[index] = updatedGoal;
+        notifyListeners();
 
-      // Update in Firebase
-      await _firestoreService!.addGoalContribution(id, amount);
+        // ✅ STEP 2: Update cache IMMEDIATELY
+        await _cacheManager.updateGoalInCache(updatedGoal);
+        debugPrint('✅ Contribution added to UI and cache immediately');
+
+        // ✅ STEP 3: Save to Firebase in background (no await)
+        _firestoreService!.addGoalContribution(id, amount).then((_) {
+          debugPrint('✅ Contribution synced to Firebase');
+        }).catchError((error) {
+          debugPrint('❌ Firebase sync error: $error');
+        });
+      }
+
       _error = null;
-
-      // ✅ OPTIMIZED: Update in cache with new amount
-      final updatedGoal = currentGoal.copyWith(
-        currentAmount: currentGoal.currentAmount + amount,
-      );
-      await _cacheManager.updateGoalInCache(updatedGoal);
-
-      debugPrint('💰 Contribution added to cache (no Firebase read needed)');
-      debugPrint('   Cost savings: ~50-100 Firebase reads avoided! 💰');
     } catch (e) {
       _error = e.toString();
+      debugPrint('❌ Error adding contribution: $e');
       rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
   }
 
@@ -277,16 +295,11 @@ class GoalProvider with ChangeNotifier {
   // ============================================
 
   int getActiveGoalsCount() => activeGoals.length;
-
   int getCompletedGoalsCount() => completedGoals.length;
-
-  double getTotalTargetAmount() {
-    return _goals.fold(0.0, (sum, g) => sum + g.targetAmount);
-  }
-
-  double getTotalCurrentAmount() {
-    return _goals.fold(0.0, (sum, g) => sum + g.currentAmount);
-  }
+  double getTotalTargetAmount() =>
+      _goals.fold(0.0, (sum, g) => sum + g.targetAmount);
+  double getTotalCurrentAmount() =>
+      _goals.fold(0.0, (sum, g) => sum + g.currentAmount);
 
   double getTotalProgress() {
     final total = getTotalTargetAmount();
