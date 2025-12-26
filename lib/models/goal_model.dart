@@ -1,5 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// ============================================
+// HELPER: Convert Timestamp or DateTime to DateTime
+// ============================================
+DateTime _toDateTime(dynamic value) {
+  if (value == null) {
+    return DateTime.now();
+  }
+
+  // If it's already a DateTime, return it
+  if (value is DateTime) {
+    return value;
+  }
+
+  // If it's a Timestamp, convert to DateTime
+  if (value is Timestamp) {
+    return value.toDate();
+  }
+
+  // Fallback
+  return DateTime.now();
+}
+
 class GoalModel {
   final String? id;
   final String name;
@@ -39,9 +61,9 @@ class GoalModel {
       name: map['name'] ?? '',
       targetAmount: (map['targetAmount'] ?? 0).toDouble(),
       currentAmount: (map['currentAmount'] ?? 0).toDouble(),
-      targetDate: (map['targetDate'] as Timestamp).toDate(),
+      targetDate: _toDateTime(map['targetDate']),
       color: map['color'] ?? '#10B981',
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt: _toDateTime(map['createdAt']),
     );
   }
 

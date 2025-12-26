@@ -1,5 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// ============================================
+// HELPER: Convert Timestamp or DateTime to DateTime
+// ============================================
+DateTime _toDateTime(dynamic value) {
+  if (value == null) {
+    return DateTime.now();
+  }
+
+  // If it's already a DateTime, return it
+  if (value is DateTime) {
+    return value;
+  }
+
+  // If it's a Timestamp, convert to DateTime
+  if (value is Timestamp) {
+    return value.toDate();
+  }
+
+  // Fallback
+  return DateTime.now();
+}
+
 enum NotificationType {
   budgetWarning,
   budgetExceeded,
@@ -13,8 +35,8 @@ class NotificationModel {
   final NotificationType type;
   final DateTime createdAt;
   final bool isRead;
-  final String? relatedId; // Budget ID, Goal ID, etc.
-  final String? relatedScreen; // Screen to navigate to
+  final String? relatedId;
+  final String? relatedScreen;
 
   NotificationModel({
     this.id,
@@ -45,7 +67,7 @@ class NotificationModel {
       title: map['title'] ?? '',
       message: map['message'] ?? '',
       type: _parseNotificationType(map['type']),
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt: _toDateTime(map['createdAt']),
       isRead: map['isRead'] ?? false,
       relatedId: map['relatedId'],
       relatedScreen: map['relatedScreen'],

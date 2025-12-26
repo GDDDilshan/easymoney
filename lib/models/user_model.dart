@@ -1,5 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// ============================================
+// HELPER: Convert Timestamp or DateTime to DateTime
+// ============================================
+DateTime _toDateTime(dynamic value) {
+  if (value == null) {
+    return DateTime.now();
+  }
+
+  // If it's already a DateTime, return it
+  if (value is DateTime) {
+    return value;
+  }
+
+  // If it's a Timestamp, convert to DateTime
+  if (value is Timestamp) {
+    return value.toDate();
+  }
+
+  // Fallback
+  return DateTime.now();
+}
+
 class UserModel {
   final String uid;
   final String email;
@@ -39,7 +61,7 @@ class UserModel {
       currencyPreference: map['currencyPreference'] ?? 'USD',
       notificationsEnabled: map['notificationsEnabled'] ?? true,
       emailAlerts: map['emailAlerts'] ?? true,
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: _toDateTime(map['createdAt']),
     );
   }
 

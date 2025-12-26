@@ -1,5 +1,24 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+DateTime _toDateTime(dynamic value) {
+  if (value == null) {
+    return DateTime.now();
+  }
+
+  // If it's already a DateTime, return it
+  if (value is DateTime) {
+    return value;
+  }
+
+  // If it's a Timestamp, convert to DateTime
+  if (value is Timestamp) {
+    return value.toDate();
+  }
+
+  // Fallback
+  return DateTime.now();
+}
+
 class RecurringModel {
   final String? id;
   final double amount;
@@ -47,10 +66,10 @@ class RecurringModel {
       category: map['category'] ?? 'Other',
       description: map['description'] ?? '',
       frequency: map['frequency'] ?? 'monthly',
-      nextDueDate: (map['nextDueDate'] as Timestamp).toDate(),
+      nextDueDate: _toDateTime(map['nextDueDate']),
       isActive: map['isActive'] ?? true,
       currency: map['currency'] ?? 'USD',
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt: _toDateTime(map['createdAt']),
     );
   }
 }

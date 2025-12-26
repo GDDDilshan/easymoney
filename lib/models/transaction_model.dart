@@ -1,5 +1,30 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// ============================================
+// HELPER: Convert Timestamp or DateTime to DateTime
+// ============================================
+DateTime _toDateTime(dynamic value) {
+  if (value == null) {
+    return DateTime.now();
+  }
+
+  // If it's already a DateTime, return it
+  if (value is DateTime) {
+    return value;
+  }
+
+  // If it's a Timestamp, convert to DateTime
+  if (value is Timestamp) {
+    return value.toDate();
+  }
+
+  // Fallback
+  return DateTime.now();
+}
+
+// ============================================
+// TRANSACTION MODEL
+// ============================================
 class TransactionModel {
   final String? id;
   final double amount;
@@ -8,7 +33,7 @@ class TransactionModel {
   final String description;
   final DateTime date;
   final List<String> tags;
-  final String? notes; // NEW: Added notes field
+  final String? notes;
   final String currency;
   final DateTime createdAt;
 
@@ -20,7 +45,7 @@ class TransactionModel {
     required this.description,
     required this.date,
     this.tags = const [],
-    this.notes, // NEW: Added notes parameter
+    this.notes,
     this.currency = 'USD',
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -33,7 +58,7 @@ class TransactionModel {
       'description': description,
       'date': Timestamp.fromDate(date),
       'tags': tags,
-      'notes': notes, // NEW: Save notes to Firestore
+      'notes': notes,
       'currency': currency,
       'createdAt': Timestamp.fromDate(createdAt),
     };
@@ -46,11 +71,11 @@ class TransactionModel {
       type: map['type'] ?? 'expense',
       category: map['category'] ?? 'Other',
       description: map['description'] ?? '',
-      date: (map['date'] as Timestamp).toDate(),
+      date: _toDateTime(map['date']),
       tags: List<String>.from(map['tags'] ?? []),
-      notes: map['notes'], // NEW: Load notes from Firestore
+      notes: map['notes'],
       currency: map['currency'] ?? 'USD',
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt: _toDateTime(map['createdAt']),
     );
   }
 
@@ -62,7 +87,7 @@ class TransactionModel {
     String? description,
     DateTime? date,
     List<String>? tags,
-    String? notes, // NEW: Added to copyWith
+    String? notes,
     String? currency,
   }) {
     return TransactionModel(
@@ -73,7 +98,7 @@ class TransactionModel {
       description: description ?? this.description,
       date: date ?? this.date,
       tags: tags ?? this.tags,
-      notes: notes ?? this.notes, // NEW: Copy notes
+      notes: notes ?? this.notes,
       currency: currency ?? this.currency,
       createdAt: createdAt,
     );
