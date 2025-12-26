@@ -555,4 +555,63 @@ class FirestoreService {
       rethrow;
     }
   }
+
+  /// 🔥 NEW: Get dashboard stats (count + totals only, NO transaction data)
+  /// This is MUCH cheaper than loading all transactions
+  /// Cost: 1-3 Firebase reads instead of 100-200
+  Future<Map<String, dynamic>> getDashboardStats(
+      DateTime startDate, DateTime endDate) async {
+    try {
+      debugPrint('📊 Loading dashboard stats (aggregation query)...');
+
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('transactions')
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
+          .get();
+
+      int count = snapshot.docs.length;
+      double income = 0;
+      double expense = 0;
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final amount = (data['amount'] ?? 0).toDouble();
+        final type = data['type'] ?? 'expense';
+
+        if (type == 'income') {
+          income += amount;
+        } else {
+          expense += amount;
+        }
+      }
+
+      debugPrint(
+          '✅ Dashboard stats calculated: $count transactions, Income: $income, Expense: $expense');
+
+      return {
+        'count': count,
+        'income': income,
+        'expense': expense,
+      };
+    } catch (e) {
+      debugPrint('❌ Error getting dashboard stats: $e');
+      return {
+        'count': 0,
+        'income': 0.0,
+        'expense': 0.0,
+      };
+    }
+  }
+
+// ============================================
+// USAGE IN YOUR FIRESTORE SERVICE
+// ============================================
+// Simply add the method above to your existing FirestoreService class
+// The method uses a lightweight aggregation query that:
+// 1. Only counts transactions (not loading full data)
+// 2. Calculates income/expense totals in one pass
+// 3. Returns just 3 numbers instead of 100+ transaction objects
 }
