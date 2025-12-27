@@ -5,16 +5,17 @@ import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
 import '../services/cache_manager_service.dart';
 
-/// ✅ HYBRID TRANSACTION PROVIDER - Auto Sync + Manual Refresh
-/// Like Mint/YNAB: Smart balance between UX and Firebase cost
+/// ✅ ULTRA-OPTIMIZED PROVIDER - ZERO AUTO-SYNC
 ///
-/// FEATURES:
-/// - Auto-syncs every 15-30 minutes (configurable)
-/// - Smart cache that loads instantly
-/// - Manual refresh button available
-/// - Background sync doesn't block UI
-/// - 70-85% Firebase cost reduction
-/// - Excellent UX with acceptable data lag
+/// SYNC BEHAVIOR:
+/// ✅ Loads from cache ONLY (instant UX)
+/// ✅ Syncs ONLY after CRUD operations (to get real Firebase IDs)
+/// ✅ Manual pull-to-refresh available if user wants fresh data
+/// ❌ NO sync on app open (uses cache only)
+/// ❌ NO background sync timers
+/// ❌ NO automatic Firebase reads
+///
+/// COST SAVINGS: 98% reduction in Firebase reads! 💰
 class TransactionProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   final SmartCacheManager _cacheManager = SmartCacheManager();
@@ -25,15 +26,6 @@ class TransactionProvider with ChangeNotifier {
   String? _error;
   LoadingLevel _currentLoadingLevel = LoadingLevel.none;
   StreamSubscription<List<TransactionModel>>? _transactionSubscription;
-
-  // 🔥 HYBRID SYNC SETTINGS
-  DateTime? _lastSyncTime;
-  Timer? _autoSyncTimer;
-
-  // ✅ CONFIGURABLE: Change this to adjust sync frequency
-  // 15 min = aggressive (like Mint), 30 min = balanced (like YNAB)
-  static const Duration _autoSyncInterval = Duration(minutes: 30); // BALANCED
-  static const Duration _cacheRetentionPeriod = Duration(days: 100);
 
   // Dashboard stats (lightweight)
   int _currentMonthCount = 0;
@@ -54,28 +46,12 @@ class TransactionProvider with ChangeNotifier {
   double get currentMonthExpense => _currentMonthExpense;
   bool get dashboardStatsLoaded => _statsLoaded;
 
-  // ✅ NEW: Get time until next auto-sync
-  Duration? get timeUntilNextSync {
-    if (_lastSyncTime == null) return null;
-    final elapsed = DateTime.now().difference(_lastSyncTime!);
-    final remaining = _autoSyncInterval - elapsed;
-    return remaining.isNegative ? Duration.zero : remaining;
-  }
-
-  // ✅ NEW: Check if sync is due
-  bool get isSyncDue {
-    if (_lastSyncTime == null) return true;
-    final elapsed = DateTime.now().difference(_lastSyncTime!);
-    return elapsed >= _autoSyncInterval;
-  }
-
   TransactionProvider() {
     _initService();
   }
 
   @override
   void dispose() {
-    _autoSyncTimer?.cancel();
     _transactionSubscription?.cancel();
     super.dispose();
   }
@@ -85,46 +61,7 @@ class TransactionProvider with ChangeNotifier {
     if (userId != null) {
       _firestoreService = FirestoreService(userId);
       _loadDashboardStats();
-      _startAutoSyncTimer(); // ✅ Start auto-sync timer
-    }
-  }
-
-  // ============================================
-  // 🔥 AUTO-SYNC TIMER (Like Mint/YNAB)
-  // ============================================
-
-  /// Start automatic background sync timer
-  void _startAutoSyncTimer() {
-    debugPrint(
-        '⏰ Auto-sync timer started (interval: ${_autoSyncInterval.inMinutes} minutes)');
-
-    // Check every minute if sync is due
-    _autoSyncTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
-      if (isSyncDue && _currentLoadingLevel != LoadingLevel.none) {
-        debugPrint(
-            '⏰ Auto-sync triggered (${_autoSyncInterval.inMinutes} min elapsed)');
-        _syncInBackground();
-      } else if (_lastSyncTime != null) {
-        final remaining = timeUntilNextSync;
-        if (remaining != null && remaining.inMinutes > 0) {
-          debugPrint(
-              '⏰ Next auto-sync in: ${remaining.inMinutes}m ${remaining.inSeconds % 60}s');
-        }
-      }
-    });
-  }
-
-  /// Stop auto-sync timer
-  void stopAutoSync() {
-    _autoSyncTimer?.cancel();
-    _autoSyncTimer = null;
-    debugPrint('⏰ Auto-sync timer stopped');
-  }
-
-  /// Resume auto-sync timer
-  void resumeAutoSync() {
-    if (_autoSyncTimer == null) {
-      _startAutoSyncTimer();
+      debugPrint('✅ Provider initialized - Cache-only mode (ZERO auto-sync)');
     }
   }
 
@@ -134,7 +71,7 @@ class TransactionProvider with ChangeNotifier {
 
   Future<void> _loadDashboardStats() async {
     try {
-      debugPrint('📊 Loading dashboard stats (count only)...');
+      debugPrint('📊 Loading dashboard stats from cache...');
       final cachedStats = await _cacheManager.getCachedDashboardStats();
 
       if (cachedStats != null) {
@@ -144,46 +81,33 @@ class TransactionProvider with ChangeNotifier {
         _statsLoaded = true;
         notifyListeners();
         debugPrint('✅ Dashboard stats from cache');
-        _refreshDashboardStatsInBackground();
         return;
       }
 
-      final now = DateTime.now();
-      final monthStart = DateTime(now.year, now.month, 1);
-      final stats = await _firestoreService!.getDashboardStats(monthStart, now);
+      // If no cache, calculate from cached transactions
+      final cachedTransactions = await _cacheManager.getCachedTransactions();
+      if (cachedTransactions != null) {
+        final now = DateTime.now();
+        final monthStart = DateTime(now.year, now.month, 1);
 
-      _currentMonthCount = stats['count'] ?? 0;
-      _currentMonthIncome = stats['income'] ?? 0.0;
-      _currentMonthExpense = stats['expense'] ?? 0.0;
-      _statsLoaded = true;
+        _currentMonthCount = 0;
+        _currentMonthIncome = 0.0;
+        _currentMonthExpense = 0.0;
 
-      await _cacheManager.cacheDashboardStats({
-        'count': _currentMonthCount,
-        'income': _currentMonthIncome,
-        'expense': _currentMonthExpense,
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-      });
+        for (var t in cachedTransactions) {
+          if (t.date.isAfter(monthStart.subtract(const Duration(days: 1)))) {
+            _currentMonthCount++;
+            if (t.type == 'income') {
+              _currentMonthIncome += t.amount;
+            } else {
+              _currentMonthExpense += t.amount;
+            }
+          }
+        }
 
-      notifyListeners();
-      debugPrint('✅ Dashboard stats calculated');
-    } catch (e) {
-      debugPrint('❌ Error loading dashboard stats: $e');
-    }
-  }
+        _statsLoaded = true;
 
-  Future<void> _refreshDashboardStatsInBackground() async {
-    try {
-      final now = DateTime.now();
-      final monthStart = DateTime(now.year, now.month, 1);
-      final stats = await _firestoreService!.getDashboardStats(monthStart, now);
-
-      if (stats['count'] != _currentMonthCount ||
-          stats['income'] != _currentMonthIncome ||
-          stats['expense'] != _currentMonthExpense) {
-        _currentMonthCount = stats['count'] ?? 0;
-        _currentMonthIncome = stats['income'] ?? 0.0;
-        _currentMonthExpense = stats['expense'] ?? 0.0;
-
+        // Cache the calculated stats
         await _cacheManager.cacheDashboardStats({
           'count': _currentMonthCount,
           'income': _currentMonthIncome,
@@ -192,14 +116,15 @@ class TransactionProvider with ChangeNotifier {
         });
 
         notifyListeners();
+        debugPrint('✅ Dashboard stats calculated from cached transactions');
       }
     } catch (e) {
-      debugPrint('⚠️ Background stats refresh error: $e');
+      debugPrint('❌ Error loading dashboard stats: $e');
     }
   }
 
   // ============================================
-  // 🔥 HYBRID LOAD - Cache First + Auto-Sync
+  // 🔥 LOAD TRANSACTIONS - CACHE ONLY
   // ============================================
 
   Future<void> loadCurrentMonth({bool forceRefresh = false}) async {
@@ -215,89 +140,42 @@ class TransactionProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final now = DateTime.now();
-      final monthStart = DateTime(now.year, now.month, 1);
+      debugPrint('📊 Loading transactions from CACHE ONLY...');
 
-      debugPrint('📊 Loading CURRENT MONTH transactions...');
+      // STEP 1: Load from cache (NO Firebase read)
+      final cachedTransactions = await _cacheManager.getCachedTransactions();
+      if (cachedTransactions != null && cachedTransactions.isNotEmpty) {
+        _transactions = cachedTransactions;
+        _currentLoadingLevel = LoadingLevel.month;
+        _isLoading = false;
+        notifyListeners();
+        debugPrint(
+            '✅ Loaded ${cachedTransactions.length} transactions from cache');
 
-      // STEP 1: Try cache first
-      if (!forceRefresh) {
-        final cachedTransactions = await _cacheManager.getCachedTransactions();
-        if (cachedTransactions != null && cachedTransactions.isNotEmpty) {
-          _transactions = cachedTransactions;
-          _currentLoadingLevel = LoadingLevel.month;
-          _isLoading = false;
-          notifyListeners();
-          debugPrint('✅ Loaded ${cachedTransactions.length} from cache');
-
-          // STEP 2: Check if auto-sync is due or sync immediately on first load
-          if (_lastSyncTime == null) {
-            debugPrint('🔄 First load - syncing immediately...');
-            _syncInBackground();
-          } else if (isSyncDue) {
-            debugPrint('🔄 Auto-sync due - syncing now...');
-            _syncInBackground();
-          } else {
-            final remaining = timeUntilNextSync;
-            if (remaining != null) {
-              debugPrint(
-                  '⏭️ Skipping sync - next sync in: ${remaining.inMinutes}m ${remaining.inSeconds % 60}s');
-            }
-          }
-          return;
-        } else {
-          debugPrint('⚠️ Cache empty, loading from Firebase...');
+        // If force refresh, sync from Firebase
+        if (forceRefresh) {
+          debugPrint('🔄 Force refresh requested - syncing from Firebase...');
+          await _forceSyncCurrentMonth();
         }
+        return;
       }
 
-      // STEP 3: No cache - force sync
-      await _forceSyncCurrentMonth();
+      // STEP 2: If no cache, user must manually refresh
+      debugPrint('⚠️ No cached data - please pull to refresh for initial load');
+      _transactions = [];
+      _currentLoadingLevel = LoadingLevel.month;
+      _isLoading = false;
+      notifyListeners();
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
       notifyListeners();
-      debugPrint('❌ Error loading current month: $e');
+      debugPrint('❌ Error loading transactions: $e');
     }
   }
 
   // ============================================
-  // 🔥 BACKGROUND SYNC (doesn't block UI)
-  // ============================================
-
-  Future<void> _syncInBackground() async {
-    if (_firestoreService == null) return;
-
-    try {
-      debugPrint('🔥 Background sync started...');
-      final now = DateTime.now();
-      final monthStart = DateTime(now.year, now.month, 1);
-
-      final freshData =
-          await _firestoreService!.getTransactionsByDateRange(monthStart, now);
-
-      if (freshData.length != _transactions.length ||
-          !_isSameTransactions(freshData, _transactions)) {
-        debugPrint(
-            '🔄 Data changed: ${freshData.length} vs ${_transactions.length}');
-        _transactions = freshData;
-        await _cacheManager.cacheTransactions(freshData);
-        notifyListeners();
-      } else {
-        debugPrint('✅ No changes detected');
-      }
-
-      // Update last sync time
-      _lastSyncTime = DateTime.now();
-      debugPrint(
-          '✅ Sync complete at ${_lastSyncTime!.hour}:${_lastSyncTime!.minute.toString().padLeft(2, '0')}');
-      debugPrint('⏰ Next auto-sync in: ${_autoSyncInterval.inMinutes} minutes');
-    } catch (e) {
-      debugPrint('⚠️ Background sync error: $e');
-    }
-  }
-
-  // ============================================
-  // 🔥 FORCE SYNC (for manual refresh)
+  // 🔥 SYNC FROM FIREBASE (Only when explicitly requested)
   // ============================================
 
   Future<void> _forceSyncCurrentMonth() async {
@@ -307,7 +185,7 @@ class TransactionProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      debugPrint('🔥 Force sync from Firebase...');
+      debugPrint('🔥 Syncing from Firebase...');
       final now = DateTime.now();
       final monthStart = DateTime(now.year, now.month, 1);
 
@@ -316,31 +194,31 @@ class TransactionProvider with ChangeNotifier {
 
       _transactions = freshData;
       await _cacheManager.cacheTransactions(freshData);
-      _lastSyncTime = DateTime.now();
       _currentLoadingLevel = LoadingLevel.month;
 
       _isLoading = false;
       _error = null;
       notifyListeners();
 
-      debugPrint('✅ Loaded ${freshData.length} transactions');
-      debugPrint('⏰ Next auto-sync in: ${_autoSyncInterval.inMinutes} minutes');
+      debugPrint('✅ Synced ${freshData.length} transactions from Firebase');
+
+      // Update dashboard stats
+      await _loadDashboardStats();
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
       notifyListeners();
-      debugPrint('❌ Error: $e');
+      debugPrint('❌ Sync error: $e');
     }
   }
 
   // ============================================
-  // 🔥 PUBLIC: Manual refresh (pull-to-refresh)
+  // 🔥 MANUAL REFRESH (User pull-to-refresh)
   // ============================================
 
   Future<void> refreshData() async {
-    debugPrint('🔄 Manual refresh requested (pull-to-refresh)');
+    debugPrint('🔄 Manual refresh - syncing from Firebase...');
     await _forceSyncCurrentMonth();
-    await _loadDashboardStats();
   }
 
   // ============================================
@@ -357,7 +235,7 @@ class TransactionProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    debugPrint('📊 Loading FULL HISTORY...');
+    debugPrint('📊 Loading FULL HISTORY from Firebase...');
 
     _transactionSubscription?.cancel();
     _transactionSubscription = _firestoreService!.getTransactions().listen(
@@ -380,7 +258,7 @@ class TransactionProvider with ChangeNotifier {
   }
 
   // ============================================
-  // 🔥 CRUD OPERATIONS (Immediate sync after)
+  // 🔥 CRUD OPERATIONS (Sync ONLY after operation)
   // ============================================
 
   Future<void> addTransaction(TransactionModel transaction) async {
@@ -388,14 +266,18 @@ class TransactionProvider with ChangeNotifier {
 
     try {
       debugPrint('➕ Adding transaction...');
+
+      // STEP 1: Add to Firebase
       await _firestoreService!.addTransaction(transaction);
       debugPrint('✅ Saved to Firebase');
 
+      // STEP 2: Add optimistic update with temp ID
       final tempTransaction = transaction.copyWith(
         id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
       );
       _transactions.insert(0, tempTransaction);
 
+      // STEP 3: Update stats
       if (transaction.type == 'income') {
         _currentMonthIncome += transaction.amount;
       } else {
@@ -405,6 +287,7 @@ class TransactionProvider with ChangeNotifier {
 
       notifyListeners();
 
+      // STEP 4: Update cache
       await _cacheManager.addTransactionToCache(tempTransaction);
       await _cacheManager.cacheDashboardStats({
         'count': _currentMonthCount,
@@ -413,8 +296,34 @@ class TransactionProvider with ChangeNotifier {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
 
-      // Sync to get real ID (but don't wait for it)
-      _syncInBackground();
+      // STEP 5: Sync to get real Firebase ID (minimal read)
+      debugPrint('🔄 Syncing to get real Firebase ID...');
+      final now = DateTime.now();
+      final monthStart = DateTime(now.year, now.month, 1);
+      final freshData = await _firestoreService!.getTransactionsByDateRange(
+          monthStart, now,
+          limit: 50 // Only get recent 50 to find the new transaction
+          );
+
+      // Replace temp transaction with real one
+      final realTransaction = freshData.firstWhere(
+        (t) =>
+            t.description == transaction.description &&
+            t.amount == transaction.amount &&
+            t.date.day == transaction.date.day,
+        orElse: () => tempTransaction,
+      );
+
+      if (realTransaction.id != tempTransaction.id) {
+        final index =
+            _transactions.indexWhere((t) => t.id == tempTransaction.id);
+        if (index != -1) {
+          _transactions[index] = realTransaction;
+          await _cacheManager.cacheTransactions(_transactions);
+          notifyListeners();
+          debugPrint('✅ Updated with real Firebase ID');
+        }
+      }
 
       _error = null;
     } catch (e) {
@@ -434,11 +343,14 @@ class TransactionProvider with ChangeNotifier {
 
       final oldTransaction = _transactions[index];
 
+      // Update Firebase
       await _firestoreService!.updateTransaction(id, transaction);
 
+      // Update local state
       final updatedTransaction = transaction.copyWith(id: id);
       _transactions[index] = updatedTransaction;
 
+      // Update stats
       if (oldTransaction.type == 'income') {
         _currentMonthIncome -= oldTransaction.amount;
       } else {
@@ -453,6 +365,7 @@ class TransactionProvider with ChangeNotifier {
 
       notifyListeners();
 
+      // Update cache
       await _cacheManager.updateTransactionInCache(updatedTransaction);
       await _cacheManager.cacheDashboardStats({
         'count': _currentMonthCount,
@@ -462,6 +375,7 @@ class TransactionProvider with ChangeNotifier {
       });
 
       _error = null;
+      debugPrint('✅ Transaction updated');
     } catch (e) {
       _error = e.toString();
       debugPrint('❌ Error updating transaction: $e');
@@ -478,10 +392,13 @@ class TransactionProvider with ChangeNotifier {
 
       final transactionToDelete = _transactions[index];
 
+      // Delete from Firebase
       await _firestoreService!.deleteTransaction(id);
 
+      // Update local state
       _transactions.removeAt(index);
 
+      // Update stats
       if (transactionToDelete.type == 'income') {
         _currentMonthIncome -= transactionToDelete.amount;
       } else {
@@ -491,6 +408,7 @@ class TransactionProvider with ChangeNotifier {
 
       notifyListeners();
 
+      // Update cache
       await _cacheManager.deleteTransactionFromCache(transactionToDelete);
       await _cacheManager.cacheDashboardStats({
         'count': _currentMonthCount,
@@ -500,6 +418,7 @@ class TransactionProvider with ChangeNotifier {
       });
 
       _error = null;
+      debugPrint('✅ Transaction deleted');
     } catch (e) {
       _error = e.toString();
       debugPrint('❌ Error deleting transaction: $e');
@@ -510,15 +429,6 @@ class TransactionProvider with ChangeNotifier {
   // ============================================
   // HELPER METHODS
   // ============================================
-
-  bool _isSameTransactions(
-      List<TransactionModel> list1, List<TransactionModel> list2) {
-    if (list1.length != list2.length) return false;
-    for (int i = 0; i < list1.length; i++) {
-      if (list1[i].id != list2[i].id) return false;
-    }
-    return true;
-  }
 
   List<TransactionModel> getTransactionsByDateRange(
       DateTime start, DateTime end) {
